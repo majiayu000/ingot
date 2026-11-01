@@ -1,6 +1,6 @@
-# ingot quick start
+# Ingot quick start
 
-ingot runs AI chat models on your own Mac. Nothing you type leaves your
+Ingot runs AI chat models on your own Mac. Nothing you type leaves your
 computer. This page gets you from nothing to a working chat, then shows how to
 use it from your browser, other apps and other devices.
 
@@ -15,9 +15,8 @@ If you want an AI coding agent to do the setup for you, point it at
   100 GiB for the largest one (see [Which model?](#which-model-should-i-pick)).
 - Xcode Command Line Tools and Rust 1.88 or later (the installer checks both
   and tells you how to get them).
-- Access to the GitHub repository (it is private for now).
 
-ingot is an early project. It has been tested on one machine (M2 Max,
+Ingot is an early project. It has been tested on one machine (M2 Max,
 96 GiB). Other Macs should work but are untested.
 
 ## Install
@@ -30,7 +29,7 @@ cd ingot
 scripts/install.sh
 ```
 
-The script builds ingot (a few minutes the first time) and copies it to
+The script builds Ingot (a few minutes the first time) and copies it to
 `~/.local/bin`. It never asks for your password and never uses `sudo`.
 
 If it says `~/.local/bin is not on your PATH`, either copy the `export PATH=...`
@@ -55,7 +54,7 @@ ingot
 
 1. A numbered list of models appears with their download sizes. Type a number
    or name and press Enter (Enter alone picks the default).
-2. ingot shows how much it will download and where. Type `y` and press Enter.
+2. Ingot shows how much it will download and where. Type `y` and press Enter.
    Nothing is downloaded until you say yes. If the download stops, run the
    same command again: it continues where it left off and checks every file.
 3. When you see **Ready!**, type a message and press Enter.
@@ -93,7 +92,7 @@ Rules of thumb:
 
 - Pick a model whose "memory it wants" is below your Mac's Metal working set,
   with room to spare for your other apps.
-- The big Qwen3.8 and GLM models can still run with less memory: ingot keeps
+- The big Qwen3.8 and GLM models can still run with less memory: Ingot keeps
   part of the model on the SSD and reads it as needed. That works, but it is
   much slower. You do not need to configure anything; memory is chosen
   automatically.
@@ -103,11 +102,11 @@ Rules of thumb:
   `ingot pull qwen3.8-mtp-q8_0`; it is used automatically.
 
 Models are stored in `~/.cache/ingot/models`. To keep them on another disk,
-set `INGOT_MODELS` every time you run ingot, for example
+set `INGOT_MODELS` every time you run Ingot, for example
 `INGOT_MODELS=/Volumes/SSD/models ingot`.
 
 You can also download a GGUF file from Hugging Face by name:
-`ingot pull hf:OWNER/REPO/FILE.gguf`. ingot runs Llama, Qwen2, Qwen3 and
+`ingot pull hf:OWNER/REPO/FILE.gguf`. Ingot runs Llama, Qwen2, Qwen3 and
 Qwen3-MoE files this way; other model families are rejected with an error.
 
 ## Use it from your browser
@@ -157,7 +156,7 @@ Your downloaded models appear in the model list.
 Set the OpenAI base URL to `http://127.0.0.1:8080/v1`, any API key, and a
 model name from `ingot models`. Note: Cursor sends some requests through its
 own servers, which cannot reach `127.0.0.1` on your Mac; if Cursor says it
-cannot connect, that is why. Do not expose ingot to the internet to work
+cannot connect, that is why. Do not expose Ingot to the internet to work
 around this: it has no password protection.
 
 ### Claude Code
@@ -196,9 +195,9 @@ Keep the printed key; other devices need it. Find your Mac's address with
 
 Only do this on a network you trust, and never expose the port to the
 internet. macOS may ask whether to allow incoming
-connections; allow it for ingot.
+connections; allow it for Ingot.
 
-## Update ingot
+## Update Ingot
 
 ```sh
 cd ingot

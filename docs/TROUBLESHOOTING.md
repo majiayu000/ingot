@@ -1,7 +1,7 @@
 # Something went wrong?
 
 Find the message you see below (search this page for a few words of it). The
-text in quotes is what ingot or the installer prints; parts in CAPITALS
+text in quotes is what Ingot or the installer prints; parts in CAPITALS
 differ on your Mac. For first steps see [QUICKSTART.md](QUICKSTART.md).
 
 When you report a problem, include the full message, the command you ran,
@@ -37,7 +37,7 @@ install.sh: ingot needs an Apple Silicon Mac (found x86_64); under Rosetta, use 
 install.sh: ingot needs macOS 15 or later (Metal residency sets); this is macOS VERSION
 ```
 
-ingot needs an M-series Mac with macOS 15 or later. If you do have Apple
+Ingot needs an M-series Mac with macOS 15 or later. If you do have Apple
 Silicon and still see `x86_64`, your Terminal is running under Rosetta: in
 Finder, select Terminal, choose **Get Info**, untick **Open using Rosetta** and
 reopen it.
@@ -71,7 +71,7 @@ If you are in a region where Hugging Face is slow or blocked, set
 SHA-256 mismatch for PATH: expected HASH, got HASH; the partial download was removed
 ```
 
-The downloaded file was damaged on the way. ingot already deleted it; run the
+The downloaded file was damaged on the way. Ingot already deleted it; run the
 same command again to download it fresh.
 
 If the message does **not** end with "the partial download was removed", the
@@ -104,7 +104,7 @@ which folder is in use on its first line.
 ingot: model NAME is not complete in FOLDER; run `ingot pull NAME` or set INGOT_MODELS
 ```
 
-The model is not downloaded (or only partly) in the folder ingot looks in.
+The model is not downloaded (or only partly) in the folder Ingot looks in.
 Run `ingot pull NAME`, or if you keep models elsewhere, set `INGOT_MODELS`
 to that folder. All parts of a multi-part model must be in the same folder.
 
@@ -137,7 +137,7 @@ ingot: --sessions N needs X GiB for ... but the memory budget has Y GiB left aft
 ```
 
 You asked `serve` to keep more conversations in memory than fit. Leave out
-`--sessions` (ingot then picks what fits) or lower `--context`.
+`--sessions` (Ingot then picks what fits) or lower `--context`.
 
 If the Mac becomes very slow while a model runs (memory pressure is red in
 Activity Monitor), the model is too large for your Mac: choose a smaller one.
@@ -145,7 +145,7 @@ Activity Monitor), the model is too large for your Mac: choose a smaller one.
 ### Slow first start
 
 The first time you load a model after downloading it or restarting the Mac,
-ingot has to read the whole model from the SSD (tens of GiB for the larger
+Ingot has to read the whole model from the SSD (tens of GiB for the larger
 models) and macOS compiles the GPU code. That can take minutes; wait for
 **Ready!** (in `chat`) or for the first reply (in `serve`). The next start is
 much faster while macOS still has the file in its cache.
@@ -162,7 +162,7 @@ ingot: unsupported tokenizer MODEL/PRE; supported: GPT-2 BPE with qwen35, glm4, 
 ingot: GGML type N is unsupported
 ```
 
-ingot runs only some model families and file formats (the lists in the
+Ingot runs only some model families and file formats (the lists in the
 message are what your installed version supports). Download a model from
 `ingot models` instead, or a Llama / Qwen / Gemma / Phi GGUF in a common quantization such
 as Q4_K_M.
@@ -175,7 +175,7 @@ as Q4_K_M.
 ingot: cannot listen on 127.0.0.1:8080: Address already in use (os error 48)
 ```
 
-Something else already uses port 8080. Often it is ingot itself: the
+Something else already uses port 8080. Often it is Ingot itself: the
 background service (`ingot service status`) or a `ingot serve` in another
 Terminal window. Use that one, stop it, or pick another port:
 `ingot serve --port 8081` (then use `8081` in all URLs). To see which program

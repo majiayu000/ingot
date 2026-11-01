@@ -1,13 +1,13 @@
 # Rust / Metal MoE 推理引擎架构提案
 
-> **说明**：本文写于 MTP 和前缀缓存实现之前。第 11 节（MTP）及“首版不做”的范围说明反映当时的计划；已实现能力以 [README.md](README.md) 为准。
+> **说明**：本文写于 MTP 和前缀缓存实现之前。第 11 节（MTP）及“首版不做”的范围说明反映当时的计划；已实现能力以 [README.md](../README.md) 为准。
 
-当前性能能力补全计划见 [OPTIMIZATION_SPEC.md](OPTIMIZATION_SPEC.md)。该 Spec 恢复同机最快推理目标，明确 MTP、矩阵预填充等必做项及验收；本文的首版排期不再作为推迟这些工作的依据。Spec 尚未实施，当前能力仍以验证记录为准。
+当前性能能力补全计划见 [OPTIMIZATION_SPEC.md](history/OPTIMIZATION_SPEC.md)。该 Spec 恢复同机最快推理目标，明确 MTP、矩阵预填充等必做项及验收；本文的首版排期不再作为推迟这些工作的依据。Spec 尚未实施，当前能力仍以验证记录为准。
 
 状态：**用户已授权实施；Qwen 主线、有限内存与分组预填充已验收；GLM 独立主干、完整短请求数值/生成和有限内存验收已通过。**
 设计日期：2026-10-11；实现更新：2026-10-12。
 
-本文保留完整设计与取舍。当前实现和实际完成的检查见 [NATIVE_VALIDATION.md](NATIVE_VALIDATION.md)，
+本文保留完整设计与取舍。当前实现和实际完成的检查见 [NATIVE_VALIDATION.md](history/NATIVE_VALIDATION.md)，
 不能将下文的计划能力全部视为已实现。GLM 5.3 Flash 已选定固定版本 ggml-org Q2_K_S；MTP 尚未实现，补全计划以新 Spec 为准。
 
 ## 先看这一页
@@ -72,7 +72,7 @@ Qwen 首条完整上下文验收线建议设为 8K，再逐级验证更长输入
 | GLM 官方配置为 45 层，其中 34 层线性注意力、11 层稀疏注意力；前 3 层 dense FFN，其余 42 层 MoE，288 选 8。 | GLM 不是替换模型文件即可运行，需要独立模型实现。 |
 
 Qwen 数字来自本地 GGUF 目录解析，模型摘要记录在
-[model-sha256.txt](macos/model-sha256.txt)。GLM 来自
+[model-sha256.txt](../macos/model-sha256.txt)。GLM 来自
 [官方配置](https://huggingface.co/zai-org/GLM-5.3-Flash/raw/main/config.json)。
 内存规则见 [Apple 资源存储说明](https://developer.apple.com/documentation/metal/choosing-a-resource-storage-mode-for-apple-gpus)。
 GLM 已选定并校验 ggml-org Q2_K_S，约 110.018 GB 张量载荷；16 GiB 短请求实测峰值
@@ -427,4 +427,4 @@ GGUF 优先、同一数学路径下的常驻与按需读取、首版单活跃会
 正式项目名和远程仓库可见性不影响以上核心架构，可单独决定。已有原型可以复用
 经验证的部分，但它的 CLI、文件划分、CPU 路由和同步方式都不是已经批准的长期设计。
 
-当前 Rust/Metal 实现已按这份设计推进。没有提交或发布；实现范围与未完成验收见 [NATIVE_VALIDATION.md](NATIVE_VALIDATION.md)。
+当前 Rust/Metal 实现已按这份设计推进。没有提交或发布；实现范围与未完成验收见 [NATIVE_VALIDATION.md](history/NATIVE_VALIDATION.md)。

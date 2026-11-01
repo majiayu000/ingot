@@ -11,14 +11,14 @@ use std::process::ExitCode;
 use gguf::Gguf;
 use metal::Gpu;
 
-const HELP: &str = "ingot: chat with Qwen3.8 or GLM-5.3 locally on your Apple Silicon Mac.
+const HELP: &str = "ingot: run AI models locally on your Apple Silicon Mac.
 
 Start here:
   ingot                                  choose a model, download and chat
   ingot run                              the same guided start
   ingot run qwen3.8-iq2_xs                download if needed, then chat
 
-Downloads are large (63–103 GiB). You will see the size and confirm first.
+Downloads range from 2 to 103 GiB. You will see the size and confirm first.
 Downloaded models are reused. Memory settings are chosen automatically.
 
 More commands:

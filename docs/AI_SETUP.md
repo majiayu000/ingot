@@ -1,13 +1,13 @@
-# Setting up ingot with an AI coding agent
+# Setting up Ingot with an AI coding agent
 
 Give this file to an AI coding agent (Claude Code, Codex, Cursor and the like)
-and ask it to "install ingot for me following docs/AI_SETUP.md". The steps
+and ask it to "install Ingot for me following docs/AI_SETUP.md". The steps
 below are written for the agent. A person can follow them too; the plain guide
 is [QUICKSTART.md](QUICKSTART.md).
 
 ## Instructions for the agent
 
-You are installing ingot, a local LLM inference engine for Apple Silicon
+You are installing Ingot, a local LLM inference engine for Apple Silicon
 Macs, for the user on their own Mac. Work in a terminal on that Mac.
 
 ### Ground rules
@@ -44,7 +44,7 @@ cargo --version              # must be 1.88 or later
 df -h ~                      # free disk space
 ```
 
-- `uname -m` is not `arm64`: stop. ingot needs Apple Silicon (or the
+- `uname -m` is not `arm64`: stop. Ingot needs Apple Silicon (or the
   terminal runs under Rosetta; tell the user).
 - Xcode Command Line Tools missing: ask the user to run
   `xcode-select --install` and finish the installer window (it needs a click).
@@ -52,8 +52,6 @@ df -h ~                      # free disk space
   <https://rustup.rs> (user-level, no sudo) or run `rustup update`.
 
 ### Step 2: get the source and install
-
-The repository is private; the user must have GitHub access.
 
 ```sh
 git clone https://github.com/majiayu000/ingot.git

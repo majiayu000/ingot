@@ -1,13 +1,13 @@
 # Native Rust / Metal 验收记录
 
-> **历史记录（2026-10-12/13 验收）**：数据和结论对应当时的提交，此后的内核、MTP 和预填充改动未在本文重新验收。当前状态见 [README.md](README.md)。
+> **历史记录（2026-10-12/13 验收）**：数据和结论对应当时的提交，此后的内核、MTP 和预填充改动未在本文重新验收。当前状态见 [README.md](../../README.md)。
 
 日期：2026-10-12。目标为记录的两分片 Qwen3.8-Flash-Next GSQ-RCO IQ2_XS 和
 GLM 5.3 Flash Q2_K_S，Apple M2 Max / 96 GiB、macOS 26.5.2。
 原始大文件留在被忽略的 `evidence/`；可审阅摘要与实际输出见
-[validation/native-qwen.json](validation/native-qwen.json)、
-[validation/native-glm.json](validation/native-glm.json)。
-权重摘要沿用 [macos/model-sha256.txt](macos/model-sha256.txt)。
+[validation/native-qwen.json](../../validation/native-qwen.json)、
+[validation/native-glm.json](../../validation/native-glm.json)。
+权重摘要沿用 [macos/model-sha256.txt](../../macos/model-sha256.txt)。
 
 ## 当前完成边界
 
@@ -182,7 +182,7 @@ MTP 需要完整状态恢复和目标验证，尚未实现。
 | 00002 | 110,017,922,752 | `61ed849acb67dc7832eda82e9fad0f0257edcd20ced1fc7640e5e329ed6951b4` |
 
 原始日志、F32 logits 和测量记录保存在 `evidence/glm-20261012/`；可提交的结果摘要为
-[validation/native-glm.json](validation/native-glm.json)。
+[validation/native-glm.json](../../validation/native-glm.json)。
 
 已实现独立 45 层主干：34 层 KDA、11 层压缩 NoPE MLA/池化 DSA、4 路 mHC、
 前 3 层 dense FFN、其余 288 选 8 MoE 与共享专家。GLM 当前按 token 顺序更新状态，
@@ -206,7 +206,7 @@ MTP 需要完整状态恢复和目标验证，尚未实现。
 GLM 的参考单独固定为 ggml-org/llama.cpp `08ffba21e5c2f1728b6b405c05ff3913f65706d4`，
 验证工具为 `tools/glm-oracle.cpp`。首次未修改的 mmap 装载向 Metal 注册了
 104921.18 MiB，第一次 decode 因 GPU 内存不足退出（返回 3），未产生有效数值结果。
-随后应用 [tools/glm-oracle-loading.patch](tools/glm-oracle-loading.patch)：仅给 gate/up/down
+随后应用 [tools/glm-oracle-loading.patch](../../tools/glm-oracle-loading.patch)：仅给 gate/up/down
 专家张量增加三个 `TENSOR_READ_LAZY` 标记，不改模型公式或算子。参考使用 load mode NONE、
 lazy ON、4 GiB 专家 GPU 缓存、F32 状态及 KV、关闭 Flash Attention。
 失败与成功记录分别保存；参考装载修复不会进入 Rust 运行依赖，也不替换原 Qwen 参考。
@@ -334,7 +334,7 @@ Qwen 输入 `[1, 109266]`、256 上下文容量、8 GiB 预算，共 8436 个 di
 
 这三个诊断结果的全部 logits 逐字节一致。原版中专家选择约占此次诊断 GPU 时间的
 22.4%，两个投影类别约占 73.3%；这些比例不能解释为正常请求的端到端耗时比例。
-结果与完整请求记录见 [validation/native-performance.json](validation/native-performance.json)。
+结果与完整请求记录见 [validation/native-performance.json](../../validation/native-performance.json)。
 
 ### 固定条件的完整请求
 
@@ -407,7 +407,7 @@ slot，144 个专家权重池均成功建立、无跳过，专家权重容量 4,
 单次耗时里扣除，不能把表格用于公平排名或证明整体超过 llama.cpp。
 
 完整命令、两个版本的二进制 SHA-256、冻结源码 SHA-256、全部正式与预热样本、数值对照
-和完成的检查写入 [validation/native-performance.json](validation/native-performance.json)。
+和完成的检查写入 [validation/native-performance.json](../../validation/native-performance.json)。
 本机原始日志、tokens、F32 输出、验证包装程序和文件清单保存在 Git 忽略的
 `evidence/native-performance-20261012/`，无模型权重或发布二进制进入提交。
 
@@ -485,7 +485,7 @@ Metal 源码与 B 相同。它与逐 token 打印的 CLI 接口不同，也没�
 负载，仍需更可控的测量才能推荐稳定速度或最佳预算。
 
 完整命令、二进制/源码 SHA-256、全部样本与检查见
-[validation/native-performance-2.json](validation/native-performance-2.json)。原始日志、F32
+[validation/native-performance-2.json](../../validation/native-performance-2.json)。原始日志、F32
 输出、复用验证程序及 SHA-256 清单保存在 Git 忽略的 `evidence/native-performance-2-20261012/`。
 量化块复用、进一步算子融合、GLM 分组投影预填充、MTP/随机采样仍是后续工作。
 
@@ -493,7 +493,7 @@ Metal 源码与 B 相同。它与逐 token 打印的 CLI 接口不同，也没�
 
 本轮源码在同一台 M2 Max / 96 GiB 上编译和测试。基线是开始时完整但未提交的源码，
 已保存 `evidence/native-performance-3-20261013/baseline-source.tar.gz`，不是 Git HEAD 的早期单层实现。
-实现、SHA-256、命令、全部样本和数值分布见 [完整 JSON](validation/native-performance-3.json)。
+实现、SHA-256、命令、全部样本和数值分布见 [完整 JSON](../../validation/native-performance-3.json)。
 
 验收中发现独立源码副本共用 Cargo target 导致导出器复用中间版本，已隔离构建目录，
 重跑全部相关数值回归；旧产物另行标注并排除。正式测速的原版/候选内核身份核对正确，

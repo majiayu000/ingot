@@ -15,7 +15,7 @@ The project direction is now a native Rust inference engine. `src/` owns GGUF
 reading, routing and Metal dispatch; `kernels/moe.metal` executes the quantized
 matrix products, SwiGLU and expert combination. It now implements the complete
 Qwen text-generation trunk, state and bounded expert loading. See
-`NATIVE_VALIDATION.md` for the exact acceptance evidence and remaining work.
+`docs/history/NATIVE_VALIDATION.md` for the exact acceptance evidence and remaining work.
 
 The Rust binary uses `objc2`, `objc2-foundation` and `objc2-metal` to call Apple
 frameworks, and Hugging Face Tokenizers 0.22.1 for BPE. It does not link libllama or libggml and does not spawn their tools.
@@ -100,7 +100,7 @@ The 9,430,240-byte primary shard carries vocabulary/metadata; the second carries
 10,134,678,776 non-expert bytes and 99,883,155,456 routed-expert bytes.
 The directory and bounded real weight-row reads were inspected independently;
 full-shard download/hash verification and full-model acceptance are recorded
-separately in NATIVE_VALIDATION.md.
+separately in docs/history/NATIVE_VALIDATION.md.
 
 Adopt/adapt/build decision: retain the existing GGUF reader and direct Metal
 runtime; add an independent GLM trunk and share the existing quantized weights
