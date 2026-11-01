@@ -1,0 +1,301 @@
+ggml_metal_device_init: tensor API disabled for pre-M5 and pre-A19 devices
+ggml_metal_library_init: using embedded metal library
+ggml_metal_library_compile_all: compiled 'fa' library in 0.032 sec
+ggml_metal_library_compile_all: compiled 'mul_mv' library in 0.007 sec
+ggml_metal_library_compile_all: compiled 'mul_mm' library in 0.035 sec
+ggml_metal_library_compile_all: compiled 'quantize' library in 0.009 sec
+ggml_metal_library_compile_all: compiled 'softmax' library in 0.003 sec
+ggml_metal_library_compile_all: compiled 'norm' library in 0.003 sec
+ggml_metal_library_compile_all: compiled 'unary' library in 0.010 sec
+ggml_metal_library_compile_all: compiled 'binbcast' library in 0.003 sec
+ggml_metal_library_compile_all: compiled 'reduce' library in 0.003 sec
+ggml_metal_library_compile_all: compiled 'tri' library in 0.003 sec
+ggml_metal_library_compile_all: compiled 'ssm' library in 0.010 sec
+ggml_metal_library_compile_all: compiled 'wkv' library in 0.034 sec
+ggml_metal_library_compile_all: compiled 'gated_delta_net' library in 0.031 sec
+ggml_metal_library_compile_all: compiled 'solve_tri' library in 0.008 sec
+ggml_metal_library_compile_all: compiled 'rope' library in 0.009 sec
+ggml_metal_library_compile_all: compiled 'conv' library in 0.006 sec
+ggml_metal_library_compile_all: compiled 'upscale' library in 0.006 sec
+ggml_metal_library_compile_all: compiled 'argsort' library in 0.005 sec
+ggml_metal_library_compile_all: compiled 'pool' library in 0.002 sec
+ggml_metal_library_compile_all: compiled 'misc' library in 0.002 sec
+ggml_metal_library_compile_all: loaded 20 libraries from embedded data in 0.035 sec (max single = 0.035 sec)
+ggml_metal_rsets_init: creating a residency set collection (keep_alive = 180 s)
+ggml_metal_device_init: GPU name:   MTL0 (Apple M2 Max)
+ggml_metal_device_init: GPU family: MTLGPUFamilyApple8  (1008)
+ggml_metal_device_init: GPU family: MTLGPUFamilyCommon3 (3003)
+ggml_metal_device_init: GPU family: MTLGPUFamilyMetal4  (5002)
+ggml_metal_device_init: simdgroup reduction   = true
+ggml_metal_device_init: simdgroup matrix mul. = true
+ggml_metal_device_init: has unified memory    = true
+ggml_metal_device_init: has bfloat            = true
+ggml_metal_device_init: has tensor            = false
+ggml_metal_device_init: use residency sets    = true
+ggml_metal_device_init: use shared buffers    = true
+ggml_metal_device_init: recommendedMaxWorkingSetSize  = 83494.17 MB
+ggml_metal_init: allocating
+ggml_metal_init: found device: Apple M2 Max
+ggml_metal_init: picking default device: Apple M2 Max
+ggml_metal_init: use fusion         = true
+ggml_metal_init: use concurrency    = true
+ggml_metal_init: use graph optimize = true
+accelerator: MTL0
+== q2_K ==
+ggml_backend_sched_register_expert_pool: expert pool for 'w_gu' on MTL0: 64/512 experts (0.66 MiB)
+ggml_backend_sched_register_expert_pool: expert pool for 'w_dn' on MTL0: 64/512 experts (0.66 MiB)
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_mul_mv_id_q2_K_f32', name = 'kernel_mul_mv_id_q2_K_f32_nsg=2'
+ggml_metal_library_compile_pipeline: loaded kernel_mul_mv_id_q2_K_f32_nsg=2               0x101df61f0 | th_max =  576 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_cpy_i32_i32', name = 'kernel_cpy_i32_i32'
+ggml_metal_library_compile_pipeline: loaded kernel_cpy_i32_i32                            0x101df7190 | th_max = 1024 | th_width =   32
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_get_rows_i32', name = 'kernel_get_rows_i32'
+ggml_metal_library_compile_pipeline: loaded kernel_get_rows_i32                           0x101df8210 | th_max = 1024 | th_width =   32
+q2_K nt=1 round1 (cold): ok
+q2_K nt=1 round2 (full eviction): ok
+q2_K nt=1 round3 (hit + reload): ok
+q2_K nt=1 round4 (after graph rebuild): ok
+q2_K nt=3 round1 (cold): ok
+q2_K nt=3 round2 (full eviction): ok
+q2_K nt=3 round3 (hit + reload): ok
+q2_K nt=3 round4 (after graph rebuild): ok
+q2_K nt=8 round1 (cold): ok
+q2_K nt=8 round2 (full eviction): ok
+q2_K nt=8 round3 (hit + reload): ok
+q2_K nt=8 round4 (after graph rebuild): ok
+q2_K nt=9 round1 (cold): ok
+q2_K nt=9 round2 (full eviction): ok
+q2_K nt=9 round3 (hit + reload): ok
+q2_K nt=9 round4 (after graph rebuild): ok
+== q3_K ==
+ggml_backend_sched_register_expert_pool: expert pool for 'w_gu' on MTL0: 64/512 experts (0.86 MiB)
+ggml_backend_sched_register_expert_pool: expert pool for 'w_dn' on MTL0: 64/512 experts (0.86 MiB)
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_mul_mv_id_q3_K_f32', name = 'kernel_mul_mv_id_q3_K_f32_nsg=2'
+ggml_metal_library_compile_pipeline: loaded kernel_mul_mv_id_q3_K_f32_nsg=2               0x101df5890 | th_max =  576 | th_width =   32
+q3_K nt=1 round1 (cold): ok
+q3_K nt=1 round2 (full eviction): ok
+q3_K nt=1 round3 (hit + reload): ok
+q3_K nt=1 round4 (after graph rebuild): ok
+q3_K nt=3 round1 (cold): ok
+q3_K nt=3 round2 (full eviction): ok
+q3_K nt=3 round3 (hit + reload): ok
+q3_K nt=3 round4 (after graph rebuild): ok
+q3_K nt=8 round1 (cold): ok
+q3_K nt=8 round2 (full eviction): ok
+q3_K nt=8 round3 (hit + reload): ok
+q3_K nt=8 round4 (after graph rebuild): ok
+q3_K nt=9 round1 (cold): ok
+q3_K nt=9 round2 (full eviction): ok
+q3_K nt=9 round3 (hit + reload): ok
+q3_K nt=9 round4 (after graph rebuild): ok
+== q4_K ==
+ggml_backend_sched_register_expert_pool: expert pool for 'w_gu' on MTL0: 64/512 experts (1.13 MiB)
+ggml_backend_sched_register_expert_pool: expert pool for 'w_dn' on MTL0: 64/512 experts (1.13 MiB)
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_mul_mv_id_q4_K_f32', name = 'kernel_mul_mv_id_q4_K_f32_nsg=2'
+ggml_metal_library_compile_pipeline: loaded kernel_mul_mv_id_q4_K_f32_nsg=2               0x101df2d10 | th_max =  768 | th_width =   32
+q4_K nt=1 round1 (cold): ok
+q4_K nt=1 round2 (full eviction): ok
+q4_K nt=1 round3 (hit + reload): ok
+q4_K nt=1 round4 (after graph rebuild): ok
+q4_K nt=3 round1 (cold): ok
+q4_K nt=3 round2 (full eviction): ok
+q4_K nt=3 round3 (hit + reload): ok
+q4_K nt=3 round4 (after graph rebuild): ok
+q4_K nt=8 round1 (cold): ok
+q4_K nt=8 round2 (full eviction): ok
+q4_K nt=8 round3 (hit + reload): ok
+q4_K nt=8 round4 (after graph rebuild): ok
+q4_K nt=9 round1 (cold): ok
+q4_K nt=9 round2 (full eviction): ok
+q4_K nt=9 round3 (hit + reload): ok
+q4_K nt=9 round4 (after graph rebuild): ok
+== q6_K ==
+ggml_backend_sched_register_expert_pool: expert pool for 'w_gu' on MTL0: 64/512 experts (1.64 MiB)
+ggml_backend_sched_register_expert_pool: expert pool for 'w_dn' on MTL0: 64/512 experts (1.64 MiB)
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_mul_mv_id_q6_K_f32', name = 'kernel_mul_mv_id_q6_K_f32_nsg=2'
+ggml_metal_library_compile_pipeline: loaded kernel_mul_mv_id_q6_K_f32_nsg=2               0x101df3010 | th_max =  896 | th_width =   32
+q6_K nt=1 round1 (cold): ok
+q6_K nt=1 round2 (full eviction): ok
+q6_K nt=1 round3 (hit + reload): ok
+q6_K nt=1 round4 (after graph rebuild): ok
+q6_K nt=3 round1 (cold): ok
+q6_K nt=3 round2 (full eviction): ok
+q6_K nt=3 round3 (hit + reload): ok
+q6_K nt=3 round4 (after graph rebuild): ok
+q6_K nt=8 round1 (cold): ok
+q6_K nt=8 round2 (full eviction): ok
+q6_K nt=8 round3 (hit + reload): ok
+q6_K nt=8 round4 (after graph rebuild): ok
+q6_K nt=9 round1 (cold): ok
+q6_K nt=9 round2 (full eviction): ok
+q6_K nt=9 round3 (hit + reload): ok
+q6_K nt=9 round4 (after graph rebuild): ok
+== q8_0 ==
+ggml_backend_sched_register_expert_pool: expert pool for 'w_gu' on MTL0: 64/512 experts (2.13 MiB)
+ggml_backend_sched_register_expert_pool: expert pool for 'w_dn' on MTL0: 64/512 experts (2.13 MiB)
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_mul_mv_id_q8_0_f32', name = 'kernel_mul_mv_id_q8_0_f32_nsg=4'
+ggml_metal_library_compile_pipeline: loaded kernel_mul_mv_id_q8_0_f32_nsg=4               0xb45c20000 | th_max = 1024 | th_width =   32
+q8_0 nt=1 round1 (cold): ok
+q8_0 nt=1 round2 (full eviction): ok
+q8_0 nt=1 round3 (hit + reload): ok
+q8_0 nt=1 round4 (after graph rebuild): ok
+q8_0 nt=3 round1 (cold): ok
+q8_0 nt=3 round2 (full eviction): ok
+q8_0 nt=3 round3 (hit + reload): ok
+q8_0 nt=3 round4 (after graph rebuild): ok
+q8_0 nt=8 round1 (cold): ok
+q8_0 nt=8 round2 (full eviction): ok
+q8_0 nt=8 round3 (hit + reload): ok
+q8_0 nt=8 round4 (after graph rebuild): ok
+q8_0 nt=9 round1 (cold): ok
+q8_0 nt=9 round2 (full eviction): ok
+q8_0 nt=9 round3 (hit + reload): ok
+q8_0 nt=9 round4 (after graph rebuild): ok
+== mxfp4 ==
+ggml_backend_sched_register_expert_pool: expert pool for 'w_gu' on MTL0: 64/512 experts (1.06 MiB)
+ggml_backend_sched_register_expert_pool: expert pool for 'w_dn' on MTL0: 64/512 experts (1.06 MiB)
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_mul_mv_id_mxfp4_f32', name = 'kernel_mul_mv_id_mxfp4_f32_nsg=2'
+ggml_metal_library_compile_pipeline: loaded kernel_mul_mv_id_mxfp4_f32_nsg=2              0xb45c20300 | th_max = 1024 | th_width =   32
+mxfp4 nt=1 round1 (cold): ok
+mxfp4 nt=1 round2 (full eviction): ok
+mxfp4 nt=1 round3 (hit + reload): ok
+mxfp4 nt=1 round4 (after graph rebuild): ok
+mxfp4 nt=3 round1 (cold): ok
+mxfp4 nt=3 round2 (full eviction): ok
+mxfp4 nt=3 round3 (hit + reload): ok
+mxfp4 nt=3 round4 (after graph rebuild): ok
+mxfp4 nt=8 round1 (cold): ok
+mxfp4 nt=8 round2 (full eviction): ok
+mxfp4 nt=8 round3 (hit + reload): ok
+mxfp4 nt=8 round4 (after graph rebuild): ok
+mxfp4 nt=9 round1 (cold): ok
+mxfp4 nt=9 round2 (full eviction): ok
+mxfp4 nt=9 round3 (hit + reload): ok
+mxfp4 nt=9 round4 (after graph rebuild): ok
+== q2_0 ==
+ggml_backend_sched_register_expert_pool: expert pool for 'w_gu' on MTL0: 64/512 experts (0.70 MiB)
+ggml_backend_sched_register_expert_pool: expert pool for 'w_dn' on MTL0: 64/512 experts (0.70 MiB)
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_mul_mv_id_q2_0_f32', name = 'kernel_mul_mv_id_q2_0_f32_nsg=2'
+ggml_metal_library_compile_pipeline: loaded kernel_mul_mv_id_q2_0_f32_nsg=2               0xb45c20600 | th_max =  640 | th_width =   32
+q2_0 nt=1 round1 (cold): ok
+q2_0 nt=1 round2 (full eviction): ok
+q2_0 nt=1 round3 (hit + reload): ok
+q2_0 nt=1 round4 (after graph rebuild): ok
+q2_0 nt=3 round1 (cold): ok
+q2_0 nt=3 round2 (full eviction): ok
+q2_0 nt=3 round3 (hit + reload): ok
+q2_0 nt=3 round4 (after graph rebuild): ok
+q2_0 nt=8 round1 (cold): ok
+q2_0 nt=8 round2 (full eviction): ok
+q2_0 nt=8 round3 (hit + reload): ok
+q2_0 nt=8 round4 (after graph rebuild): ok
+q2_0 nt=9 round1 (cold): ok
+q2_0 nt=9 round2 (full eviction): ok
+q2_0 nt=9 round3 (hit + reload): ok
+q2_0 nt=9 round4 (after graph rebuild): ok
+== iq2_xs ==
+ggml_backend_sched_register_expert_pool: expert pool for 'w_gu' on MTL0: 64/512 experts (0.58 MiB)
+ggml_backend_sched_register_expert_pool: expert pool for 'w_dn' on MTL0: 64/512 experts (0.58 MiB)
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_mul_mv_id_iq2_xs_f32', name = 'kernel_mul_mv_id_iq2_xs_f32_nsg=2'
+ggml_metal_library_compile_pipeline: loaded kernel_mul_mv_id_iq2_xs_f32_nsg=2             0xb45c20900 | th_max =  640 | th_width =   32
+iq2_xs nt=1 round1 (cold): ok
+iq2_xs nt=1 round2 (full eviction): ok
+iq2_xs nt=1 round3 (hit + reload): ok
+iq2_xs nt=1 round4 (after graph rebuild): ok
+iq2_xs nt=3 round1 (cold): ok
+iq2_xs nt=3 round2 (full eviction): ok
+iq2_xs nt=3 round3 (hit + reload): ok
+iq2_xs nt=3 round4 (after graph rebuild): ok
+iq2_xs nt=8 round1 (cold): ok
+iq2_xs nt=8 round2 (full eviction): ok
+iq2_xs nt=8 round3 (hit + reload): ok
+iq2_xs nt=8 round4 (after graph rebuild): ok
+iq2_xs nt=9 round1 (cold): ok
+iq2_xs nt=9 round2 (full eviction): ok
+iq2_xs nt=9 round3 (hit + reload): ok
+iq2_xs nt=9 round4 (after graph rebuild): ok
+== iq3_s ==
+ggml_backend_sched_register_expert_pool: expert pool for 'w_gu' on MTL0: 64/512 experts (0.86 MiB)
+ggml_backend_sched_register_expert_pool: expert pool for 'w_dn' on MTL0: 64/512 experts (0.86 MiB)
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_mul_mv_id_iq3_s_f32', name = 'kernel_mul_mv_id_iq3_s_f32_nsg=2'
+ggml_metal_library_compile_pipeline: loaded kernel_mul_mv_id_iq3_s_f32_nsg=2              0xb45c20c00 | th_max =  640 | th_width =   32
+iq3_s nt=1 round1 (cold): ok
+iq3_s nt=1 round2 (full eviction): ok
+iq3_s nt=1 round3 (hit + reload): ok
+iq3_s nt=1 round4 (after graph rebuild): ok
+iq3_s nt=3 round1 (cold): ok
+iq3_s nt=3 round2 (full eviction): ok
+iq3_s nt=3 round3 (hit + reload): ok
+iq3_s nt=3 round4 (after graph rebuild): ok
+iq3_s nt=8 round1 (cold): ok
+iq3_s nt=8 round2 (full eviction): ok
+iq3_s nt=8 round3 (hit + reload): ok
+iq3_s nt=8 round4 (after graph rebuild): ok
+iq3_s nt=9 round1 (cold): ok
+iq3_s nt=9 round2 (full eviction): ok
+iq3_s nt=9 round3 (hit + reload): ok
+iq3_s nt=9 round4 (after graph rebuild): ok
+== iq2_s ==
+ggml_backend_sched_register_expert_pool: expert pool for 'w_gu' on MTL0: 64/512 experts (0.64 MiB)
+ggml_backend_sched_register_expert_pool: expert pool for 'w_dn' on MTL0: 64/512 experts (0.64 MiB)
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_mul_mv_id_iq2_s_f32', name = 'kernel_mul_mv_id_iq2_s_f32_nsg=2'
+ggml_metal_library_compile_pipeline: loaded kernel_mul_mv_id_iq2_s_f32_nsg=2              0xb45c20f00 | th_max =  640 | th_width =   32
+iq2_s nt=1 round1 (cold): ok
+iq2_s nt=1 round2 (full eviction): ok
+iq2_s nt=1 round3 (hit + reload): ok
+iq2_s nt=1 round4 (after graph rebuild): ok
+iq2_s nt=3 round1 (cold): ok
+iq2_s nt=3 round2 (full eviction): ok
+iq2_s nt=3 round3 (hit + reload): ok
+iq2_s nt=3 round4 (after graph rebuild): ok
+iq2_s nt=8 round1 (cold): ok
+iq2_s nt=8 round2 (full eviction): ok
+iq2_s nt=8 round3 (hit + reload): ok
+iq2_s nt=8 round4 (after graph rebuild): ok
+iq2_s nt=9 round1 (cold): ok
+iq2_s nt=9 round2 (full eviction): ok
+iq2_s nt=9 round3 (hit + reload): ok
+iq2_s nt=9 round4 (after graph rebuild): ok
+== iq2_xxs ==
+ggml_backend_sched_register_expert_pool: expert pool for 'w_gu' on MTL0: 64/512 experts (0.52 MiB)
+ggml_backend_sched_register_expert_pool: expert pool for 'w_dn' on MTL0: 64/512 experts (0.52 MiB)
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_mul_mv_id_iq2_xxs_f32', name = 'kernel_mul_mv_id_iq2_xxs_f32_nsg=2'
+ggml_metal_library_compile_pipeline: loaded kernel_mul_mv_id_iq2_xxs_f32_nsg=2            0xb45c21200 | th_max =  832 | th_width =   32
+iq2_xxs nt=1 round1 (cold): ok
+iq2_xxs nt=1 round2 (full eviction): ok
+iq2_xxs nt=1 round3 (hit + reload): ok
+iq2_xxs nt=1 round4 (after graph rebuild): ok
+iq2_xxs nt=3 round1 (cold): ok
+iq2_xxs nt=3 round2 (full eviction): ok
+iq2_xxs nt=3 round3 (hit + reload): ok
+iq2_xxs nt=3 round4 (after graph rebuild): ok
+iq2_xxs nt=8 round1 (cold): ok
+iq2_xxs nt=8 round2 (full eviction): ok
+iq2_xxs nt=8 round3 (hit + reload): ok
+iq2_xxs nt=8 round4 (after graph rebuild): ok
+iq2_xxs nt=9 round1 (cold): ok
+iq2_xxs nt=9 round2 (full eviction): ok
+iq2_xxs nt=9 round3 (hit + reload): ok
+iq2_xxs nt=9 round4 (after graph rebuild): ok
+== iq1_m ==
+ggml_backend_sched_register_expert_pool: expert pool for 'w_gu' on MTL0: 64/512 experts (0.44 MiB)
+ggml_backend_sched_register_expert_pool: expert pool for 'w_dn' on MTL0: 64/512 experts (0.44 MiB)
+ggml_metal_library_compile_pipeline: compiling pipeline: base = 'kernel_mul_mv_id_iq1_m_f32', name = 'kernel_mul_mv_id_iq1_m_f32_nsg=2'
+ggml_metal_library_compile_pipeline: loaded kernel_mul_mv_id_iq1_m_f32_nsg=2              0xb45c21500 | th_max =  576 | th_width =   32
+iq1_m nt=1 round1 (cold): ok
+iq1_m nt=1 round2 (full eviction): ok
+iq1_m nt=1 round3 (hit + reload): ok
+iq1_m nt=1 round4 (after graph rebuild): ok
+iq1_m nt=3 round1 (cold): ok
+iq1_m nt=3 round2 (full eviction): ok
+iq1_m nt=3 round3 (hit + reload): ok
+iq1_m nt=3 round4 (after graph rebuild): ok
+iq1_m nt=8 round1 (cold): ok
+iq1_m nt=8 round2 (full eviction): ok
+iq1_m nt=8 round3 (hit + reload): ok
+iq1_m nt=8 round4 (after graph rebuild): ok
+iq1_m nt=9 round1 (cold): ok
+iq1_m nt=9 round2 (full eviction): ok
+iq1_m nt=9 round3 (hit + reload): ok
+iq1_m nt=9 round4 (after graph rebuild): ok
+ggml_metal_free: deallocating
+expert pool test PASSED

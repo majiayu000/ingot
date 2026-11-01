@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "scope": "Authored heldout likelihood corpus: two independent documents per Chinese/code/math category; first at most 512 tokenizer tokens per document, no special-token insertion. Every eligible next-token loss and every 16th full-vocabulary distribution are checked. Not a broad language benchmark. Never used for shortlist frequency training.",
+  "documents": [
+    {
+      "id": "chinese-a",
+      "category": "chinese",
+      "text": "城市图书馆准备延长开放时间。馆员先统计了读者在不同时间段到馆的数量，也记录了自习室、借阅台和儿童阅览区的使用情况。统计显示，晚间读者主要需要安静的座位，而借阅业务在下午更集中。因此，延长开放不等于所有岗位都增加相同的工作时长。试行方案安排自习区开放到晚上九点，借阅台仍在原定时间结束服务，并在门口说明两种时间。\n实施前，工作人员检查消防通道、照明、门禁和应急联系流程。读者离馆时可以从指定出口离开，值班人员需要完成清场和交接。馆方为试行设置了四周观察期，比较晚间座位利用率、人员成本和投诉数量。工作人员不会把一次活动造成的人流高峰当成日常需求，也不会仅凭某个工作日的低利用率取消整个方案。\n试行结束后，图书馆公开了统计口径。到馆人数按实际入馆计数，座位使用按每半小时的观察记录计算，二者不能直接相加。报告承认数据仍受到天气、节假日和考试安排影响。读者可以提出建议，但建议数量与实际使用人数是不同指标。下一步调整将结合连续记录和服务质量，而不是只追求一个好看的数字。"
+    },
+    {
+      "id": "chinese-b",
+      "category": "chinese",
+      "text": "一支社区志愿者队伍打算把居民提出的问题整理成公开的办事指南。原始问题来自不同渠道，有的文字简短，有的描述了很长的经历。整理时，志愿者先确认问题涉及的事项和责任单位，再把个人经历中的联系方式和家庭信息移除。他们保留真正影响办理条件的事实，不把情绪化表达改写成政策结论。\n一条指南包括适用条件、需要的材料、受理地点和可能的等待时间。对于无法核实的信息，编辑标明尚待确认。居民曾经成功办理的案例可以帮助发现线索，但不能证明所有人都适用相同流程。如果材料清单发生变化，指南需要记录新来源和更新时间，并保留修改理由。过期说明继续传播会让居民白跑一趟，因此更新工作与首次编写同样重要。\n团队安排两人复核每条说明，一人检查原始来源，另一人按居民的视角模拟办理过程。复核并不意味着增加没有依据的要求，而是发现遗漏和歧义。发布后的反馈按具体问题处理，不能把一次拒绝受理解释成普遍规则，也不能把未回复当成默认同意。指南的作用是减少重复咨询，让居民知道下一步该做什么，同时清楚地说明仍然需要向受理单位核实的内容。"
+    },
+    {
+      "id": "code-a",
+      "category": "code",
+      "text": "Python functions can separate validation from calculation. A parsing function should establish the type and meaning of input once, then pass an ordinary value to the calculation. A test should examine externally visible behavior, including relevant errors, rather than repeating each line of the implementation. The following example reads a small table and preserves the order of its first appearance.\nimport csv\nimport io\nfrom collections import defaultdict\n\ndef summarize(text):\n    totals = defaultdict(int)\n    order = []\n    for row in csv.DictReader(io.StringIO(text)):\n        name = row['name'].strip()\n        value = int(row['value'])\n        if name not in totals:\n            order.append(name)\n        totals[name] += value\n    return [(name, totals[name]) for name in order]\n\nsample = 'name,value\\nalice,2\\nbob,3\\nalice,5\\n'\nassert summarize(sample) == [('alice', 7), ('bob', 3)]\nAn empty table returns an empty result. A missing required column is a malformed input and should retain its error rather than silently invent a value. A negative amount is valid in this example because the function aggregates adjustments as well as additions. If a caller requires only positive amounts, that requirement belongs in its input contract. The order list is needed because the result follows first appearance, while an alphabetical report would require an explicit sort. A generator can reduce temporary memory, but it cannot eliminate the totals dictionary when entries must be combined across the entire input. Measurement should include representative repeated names and realistic table sizes before changing the implementation. Small examples demonstrate behavior; they do not establish throughput on large files."
+    },
+    {
+      "id": "code-b",
+      "category": "code",
+      "text": "A bounded queue connects a producer to a consumer. Capacity limits the items waiting in the queue, but not the memory held by the producer, the consumer or their temporary buffers. Cancellation must wake blocked work and leave ownership clear. A task that failed to produce an item should not be counted as a successful result.\nfrom collections import deque\n\nclass Window:\n    def __init__(self, capacity):\n        if capacity <= 0:\n            raise ValueError('capacity must be positive')\n        self.capacity = capacity\n        self.values = deque()\n        self.total = 0\n\n    def append(self, value):\n        self.values.append(value)\n        self.total += value\n        if len(self.values) > self.capacity:\n            self.total -= self.values.popleft()\n        return self.total\n\nwindow = Window(3)\nassert [window.append(x) for x in [1, 2, 3, 4]] == [1, 3, 6, 9]\nassert list(window.values) == [2, 3, 4]\nThe running total avoids summing the whole window after every update. Its arithmetic is exact for Python integers, but a corresponding floating point implementation can accumulate rounding error. A test for floating point values should compare an independently computed reference using an appropriate numerical tolerance. It should also check non-finite inputs if those are forbidden by the application. Replacing an ordered queue with a set changes its behavior because duplicates and order matter. An optimization that improves one operation can still slow a complete request if it adds initialization or conversion work. For that reason, a benchmark should keep construction, update and final consumption visible, and state which phases are included in the reported time. Independent repeated runs are more useful than selecting the fastest observation."
+    },
+    {
+      "id": "math-a",
+      "category": "math",
+      "text": "计算平均数时，应先明确每个观测值的权重。三次旅程的距离相同，并不意味着可以直接对三段速度取算术平均。假设每段都是六十千米，速度分别为三十、六十和九十千米每小时，时间分别为二、一和三分之二小时。总路程是一百八十千米，总时间是十一除以三小时，平均速度等于五百四十除以十一千米每小时。它小于三段速度的算术平均数，因为较慢的路段消耗了更多时间。\n处理百分比也要保留计算基数。一件商品先涨价百分之二十，再降价百分之二十，价格变成原来的零点九六倍，而不是回到原价。第二次变化使用涨价后的金额作基数。对于连续多个变化，可以把每次的比例因子相乘。如果其中一个比例被写成减少百分之百，后续任何有限比例的增长仍不能恢复原有金额。\n概率题需要区分有放回与无放回抽样。一个袋子里有三个红球和两个蓝球，无放回抽两次都为红球的概率是三除以五乘以二除以四，等于十分之三。若每次抽出后放回，则两次红球的概率为九除以二十五。两种问题的样本空间不同，不能仅凭第一次概率相同就使用同一个公式。检查答案时，还应确认概率在零和一之间，并说明事件的定义。"
+    },
+    {
+      "id": "math-b",
+      "category": "math",
+      "text": "解线性方程时，对等式两边进行相同操作可以保持解集。对于三乘以某个数再加七等于二十二，先减去七得到三倍这个数等于十五，再除以三得到这个数是五。把五代回原式，可以检查是否满足条件。对于分母含未知数的方程，还必须先记录分母不能为零的限制，否则在变形后可能保留一个原式没有定义的候选值。\n一个长方形长十二米、宽七米，面积是八十四平方米，周长是三十八米。面积和周长使用不同的单位，不能互相相加。把长和宽都扩大两倍后，面积扩大四倍，周长扩大两倍。这是因为面积包含两个长度因子的乘积，而周长是长度的线性组合。在比较模型或实验结果时，类似的尺度差异也需要先统一单位。\n数列三、七、十一依次增加四。第十项等于三加上九个四，也就是三十九。前十项的平均数等于第一项与第十项之和除以二，得到二十一，因此总和是二百一十。这个方法依赖等差数列的结构，不能不经检查就应用于任何数列。对于三个数六、十、十四，算术平均数是十；对于五个数二、四、四、八、十二，中位数是四。平均数与中位数描述不同的特征，在存在极端值时可能明显不同。"
+    }
+  ]
+}

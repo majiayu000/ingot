@@ -1,0 +1,508 @@
+{
+  "date": "2026-10-12",
+  "hardware": "Apple M2 Max / 96 GiB",
+  "model_manifest": "macos/model-sha256.txt",
+  "reference_revision": "555d1ec9daa4564cb06adb39c469acfdcd1d1e93",
+  "activation_and_state": "F32",
+  "quantization_formats": [
+    {
+      "format": "BF16",
+      "tensor": "output_hc_down.weight",
+      "row": 0,
+      "max_abs": 0.0
+    },
+    {
+      "format": "BF16",
+      "tensor": "output_hc_down.weight",
+      "row": 7,
+      "max_abs": 0.0
+    },
+    {
+      "format": "F16",
+      "tensor": "blk.1.ple_conv1d.weight",
+      "row": 0,
+      "max_abs": 0.0
+    },
+    {
+      "format": "F16",
+      "tensor": "blk.1.ple_conv1d.weight",
+      "row": 7,
+      "max_abs": 0.0
+    },
+    {
+      "format": "F32",
+      "tensor": "output_hc_norm.weight",
+      "row": 0,
+      "max_abs": 0.0
+    },
+    {
+      "format": "IQ1_M",
+      "tensor": "blk.8.ffn_gate_exps.weight",
+      "row": 0,
+      "max_abs": 0.0
+    },
+    {
+      "format": "IQ1_M",
+      "tensor": "blk.8.ffn_gate_exps.weight",
+      "row": 7,
+      "max_abs": 0.0
+    },
+    {
+      "format": "IQ2_S",
+      "tensor": "blk.0.ffn_gate_exps.weight",
+      "row": 0,
+      "max_abs": 0.0
+    },
+    {
+      "format": "IQ2_S",
+      "tensor": "blk.0.ffn_gate_exps.weight",
+      "row": 7,
+      "max_abs": 0.0
+    },
+    {
+      "format": "IQ2_XXS",
+      "tensor": "blk.1.ffn_gate_exps.weight",
+      "row": 0,
+      "max_abs": 0.0
+    },
+    {
+      "format": "IQ2_XXS",
+      "tensor": "blk.1.ffn_gate_exps.weight",
+      "row": 7,
+      "max_abs": 0.0
+    },
+    {
+      "format": "IQ3_S",
+      "tensor": "blk.0.attn_gate.weight",
+      "row": 0,
+      "max_abs": 0.0
+    },
+    {
+      "format": "IQ3_S",
+      "tensor": "blk.0.attn_gate.weight",
+      "row": 7,
+      "max_abs": 0.0
+    },
+    {
+      "format": "IQ4_NL",
+      "tensor": "blk.0.ffn_down_shexp.weight",
+      "row": 0,
+      "max_abs": 0.0
+    },
+    {
+      "format": "IQ4_NL",
+      "tensor": "blk.0.ffn_down_shexp.weight",
+      "row": 7,
+      "max_abs": 0.0
+    },
+    {
+      "format": "IQ4_XS",
+      "tensor": "output.weight",
+      "row": 0,
+      "max_abs": 0.0
+    },
+    {
+      "format": "IQ4_XS",
+      "tensor": "output.weight",
+      "row": 7,
+      "max_abs": 0.0
+    },
+    {
+      "format": "Q2_0",
+      "tensor": "blk.0.ffn_down_exps.weight",
+      "row": 0,
+      "max_abs": 0.0
+    },
+    {
+      "format": "Q2_0",
+      "tensor": "blk.0.ffn_down_exps.weight",
+      "row": 7,
+      "max_abs": 0.0
+    },
+    {
+      "format": "Q6_K",
+      "tensor": "blk.1.ffn_gate_shexp.weight",
+      "row": 0,
+      "max_abs": 0.0
+    },
+    {
+      "format": "Q6_K",
+      "tensor": "blk.1.ffn_gate_shexp.weight",
+      "row": 7,
+      "max_abs": 0.0
+    },
+    {
+      "format": "Q8_0",
+      "tensor": "blk.3.ffn_down_shexp.weight",
+      "row": 0,
+      "max_abs": 0.0
+    },
+    {
+      "format": "Q8_0",
+      "tensor": "blk.3.ffn_down_shexp.weight",
+      "row": 7,
+      "max_abs": 0.0
+    }
+  ],
+  "tokenizer_cases": 28,
+  "teacher_forced_f32": {
+    "positions": 47,
+    "max_abs": 0.9685024619102478,
+    "relative_l2": 0.020010996609926224,
+    "top_disagreement_positions": [],
+    "greedy_tokens_equal": true,
+    "kl_ref_native_mean": 6.096263081816692e-05,
+    "kl_ref_native_max": 0.0006967767560839555,
+    "total_variation_mean": 0.002480246282742865,
+    "total_variation_max": 0.016291838525512095,
+    "per_position_max_abs": [
+      0.015489578247070312,
+      0.007137298583984375,
+      0.01122283935546875,
+      0.005579710006713867,
+      0.007329463958740234,
+      0.009808540344238281,
+      0.011594295501708984,
+      0.019277572631835938,
+      0.6121015548706055,
+      0.09985542297363281,
+      0.06890106201171875,
+      0.05583763122558594,
+      0.019481658935546875,
+      0.02243518829345703,
+      0.02339315414428711,
+      0.5404715538024902,
+      0.3358752131462097,
+      0.18537569046020508,
+      0.07275676727294922,
+      0.06710076332092285,
+      0.5117030143737793,
+      0.6487979888916016,
+      0.21904754638671875,
+      0.23835396766662598,
+      0.0934377908706665,
+      0.07335996627807617,
+      0.04451942443847656,
+      0.057016849517822266,
+      0.40509748458862305,
+      0.09281206130981445,
+      0.2671799659729004,
+      0.08260762691497803,
+      0.05362749099731445,
+      0.7095317840576172,
+      0.9685024619102478,
+      0.3446075916290283,
+      0.061345577239990234,
+      0.054676055908203125,
+      0.05141139030456543,
+      0.05230212211608887,
+      0.03919661045074463,
+      0.0585479736328125,
+      0.047496676445007324,
+      0.03519248962402344,
+      0.06234312057495117,
+      0.10589742660522461,
+      0.12247180938720703
+    ]
+  },
+  "probe_tokens": [
+    1,
+    109266,
+    248044,
+    96748
+  ],
+  "resident_cache_probe": {
+    "positions": 4,
+    "budget_gib": 8,
+    "bit_exact_logits": true,
+    "max_abs_error": 0.0
+  },
+  "generation_8g": {
+    "prompt": "用一句中文介绍你自己。",
+    "prompt_tokens": 18,
+    "output_tokens": [
+      103724,
+      95974,
+      96359,
+      96617,
+      96094,
+      3709,
+      96125,
+      96336,
+      110619,
+      95974,
+      96359,
+      103911,
+      98663,
+      97039,
+      97796,
+      98277,
+      103725,
+      3709,
+      100879,
+      110511,
+      98409,
+      5205,
+      101693,
+      97447,
+      109325,
+      124645,
+      97336,
+      96791,
+      1710
+    ],
+    "text": "我是通义千问，一个由阿里巴巴通义实验室独立开发的大语言模型，致力于为您提供智能、高效且富有同理心的帮助。",
+    "stop": "Eos",
+    "context": 8192,
+    "budget_bytes": 8589934592,
+    "reserved_bytes": 8556992512,
+    "metal_bytes_after_request": 8225619968,
+    "peak_footprint_bytes": 8415631840,
+    "max_rss_bytes": 8434057216,
+    "load_seconds": 1.221202125,
+    "prefill_seconds": 24.118860584,
+    "first_token_seconds": 24.1196505,
+    "total_request_seconds": 68.009215834,
+    "decode_seconds": [
+      0.718558417,
+      0.711144583,
+      0.617166625,
+      4.441365208,
+      0.8477475,
+      2.453473959,
+      2.481685083,
+      2.691474125,
+      0.635842916,
+      0.6025475,
+      1.395172875,
+      1.460086333,
+      1.664769,
+      1.068420292,
+      0.900480625,
+      1.264941375,
+      0.771424,
+      1.145054542,
+      1.650597834,
+      0.718099084,
+      1.657080375,
+      2.832086625,
+      1.185092917,
+      0.6510806250000001,
+      0.6413094579999999,
+      0.594963292,
+      6.074875959,
+      1.101200458,
+      0.7940682910000001
+    ],
+    "file_bytes": 9749494880,
+    "cache_hits": 11979,
+    "cache_misses": 6751,
+    "expert_read_seconds": 9.296626674,
+    "physical_ssd_read_bytes": null,
+    "condition": "file cache uncontrolled; not a cold-SSD claim",
+    "prompt_token_ids": [
+      248045,
+      846,
+      198,
+      95826,
+      104213,
+      99986,
+      97431,
+      111522,
+      1710,
+      248046,
+      198,
+      248045,
+      74455,
+      198,
+      248068,
+      271,
+      248069,
+      271
+    ]
+  },
+  "prefill_alternating": {
+    "prompt_tokens": 18,
+    "resident_experts": true,
+    "all_logits_bit_exact": true,
+    "samples": [
+      {
+        "batched": true,
+        "seconds": 23.287577834
+      },
+      {
+        "batched": false,
+        "seconds": 21.005288709
+      },
+      {
+        "batched": false,
+        "seconds": 45.224736375
+      },
+      {
+        "batched": true,
+        "seconds": 12.668933083
+      },
+      {
+        "batched": true,
+        "seconds": 14.971189708
+      },
+      {
+        "batched": false,
+        "seconds": 49.681783334
+      }
+    ],
+    "condition": "same engine; order B,S,S,B,B,S; slow samples retained; first-use GPU compilation and system load uncontrolled"
+  },
+  "state_contracts": {
+    "chunk_sizes": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "cached_logits_bit_exact": true,
+    "cancellation_seconds": 0.017998459,
+    "single_session_lease": true,
+    "context_overflow_before_mutation": true,
+    "invalid_token_invalidates_session": true,
+    "callback_error_propagated": true,
+    "cancelled_session_rejected": true,
+    "fresh_session_works": true,
+    "low_budget_rejected": true,
+    "final_cancellation_seconds": 0.016950375,
+    "nul_and_chat_template": true,
+    "final_test_seconds": 34.05
+  },
+  "long_context_8192": {
+    "status": "passed",
+    "budget_gib": 8,
+    "kind": "smoke; repeated tokenized Chinese text, no long-context language-quality oracle",
+    "last_checked_position": 8192,
+    "samples": [
+      {
+        "position": 512,
+        "seconds": 198.965831833,
+        "top": 96961
+      },
+      {
+        "position": 1024,
+        "seconds": 486.328257375,
+        "top": 110976
+      },
+      {
+        "position": 1536,
+        "seconds": 745.837009,
+        "top": 109640
+      },
+      {
+        "position": 2048,
+        "seconds": 1013.503768875,
+        "top": 575
+      },
+      {
+        "position": 2560,
+        "seconds": 1346.939608291,
+        "top": 99486
+      },
+      {
+        "position": 3072,
+        "seconds": 1643.09998825,
+        "top": 104983
+      },
+      {
+        "position": 3584,
+        "seconds": 1906.720111625,
+        "top": 95999
+      },
+      {
+        "position": 4096,
+        "seconds": 2125.489275583,
+        "top": 220
+      },
+      {
+        "position": 4608,
+        "seconds": 2352.181694541,
+        "top": 3709
+      },
+      {
+        "position": 5120,
+        "seconds": 2573.800927958,
+        "top": 1710
+      },
+      {
+        "position": 5632,
+        "seconds": 2814.8069355,
+        "top": 110745
+      },
+      {
+        "position": 6144,
+        "seconds": 3119.681290166,
+        "top": 104170
+      },
+      {
+        "position": 6656,
+        "seconds": 3393.983445041,
+        "top": 63447
+      },
+      {
+        "position": 7168,
+        "seconds": 3967.354777291,
+        "top": 98151
+      },
+      {
+        "position": 7680,
+        "seconds": 4543.262847,
+        "top": 1710
+      },
+      {
+        "position": 8192,
+        "seconds": 5010.744218916,
+        "top": 96656
+      }
+    ],
+    "resource_sample": {
+      "pid": 21938,
+      "rss": 3705257984,
+      "footprint": 8432540152,
+      "peak_footprint": 8454003192,
+      "disk_read_bytes": 41957273600,
+      "disk_written_bytes": 0,
+      "pageins": 0
+    },
+    "resource_metric": "Darwin proc_pid_rusage V4; process-attributed disk I/O includes load; not isolated device/cold SSD I/O",
+    "system_memory_snapshot": {
+      "vm_stat": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                   535167.\nPages active:                                2265485.\nPages inactive:                              2198640.\nPages speculative:                             67433.\nPages throttled:                                   0.\nPages wired down:                             411251.\nPages purgeable:                                5711.\n\"Translation faults\":                    26013890023.\nPages copy-on-write:                      1738330311.\nPages zero filled:                       17242118532.\nPages reactivated:                         415016819.\nPages purged:                               35543817.\nFile-backed pages:                           1819314.\nAnonymous pages:                             2712244.\nPages stored in compressor:                  2879601.\nPages occupied by compressor:                 692534.\nDecompressions:                            168677406.\nCompressions:                              285169000.\nPageins:                                  1152376632.\nPageouts:                                    1209727.\nSwapins:                                     5242432.\nSwapouts:                                   10512252.\n",
+      "swapusage": "vm.swapusage: total = 15360.00M  used = 14161.25M  free = 1198.75M  (encrypted)\n",
+      "note": "whole-system point-in-time metrics; not attributable solely to the engine"
+    },
+    "forward_seconds": 5010.744218916,
+    "test_seconds": 5012.54,
+    "context_overflow_rejected": true,
+    "resource_sample_note": "Last successful process sample near the end, before exit; cumulative peak is not an exact final-exit measurement."
+  },
+  "not_implemented": [
+    "GLM 5.3 Flash",
+    "MTP",
+    "random sampling",
+    "arbitrary chat templates",
+    "multi-session concurrency"
+  ],
+  "binaries": {
+    "generation_8g_and_prefill_sha256": "7a3fdbb4294cc577f42f17306fd285fd890830e2c912b9a4e08f333b797a4679",
+    "note": "After timing runs: validated shard offsets, F32 parameters and architecture; added cancellation checks between cached experts. Valid, uncancelled-model numerical kernels are unchanged.",
+    "final_binary_sha256": "748d80840610ea7ea993ddac98ee1c4e69f72383e6758f7a2ff73a552ddb677d"
+  },
+  "checks": {
+    "unit_tests_passed": 8,
+    "clippy_warnings_denied": true,
+    "fmt": true,
+    "release_build": true,
+    "standalone_cpp_oracle_build": true,
+    "physical_ssd_bytes": "unavailable",
+    "real_weight_tests": [
+      "state_cancellation_memory_and_reuse",
+      "prefill_comparison",
+      "full_8192_context"
+    ]
+  }
+}

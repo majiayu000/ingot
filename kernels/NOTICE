@@ -1,0 +1,127 @@
+Quantization layouts and codebooks are adapted from memoriaru/llama.cpp,
+revision 555d1ec9daa4564cb06adb39c469acfdcd1d1e93:
+- ggml/src/ggml-common.h: iq2s_grid, iq2xxs_grid, iq3s_grid, iq1s_grid,
+  ksigns_iq2xs, kvalues_iq4nl, and block layouts
+- ggml/src/ggml-quants.c: F32/F16/BF16, Q8_0/Q6_K/Q2_0 and
+  IQ1_M/IQ2_XXS/IQ2_S/IQ3_S/IQ4_NL/IQ4_XS dequantization formulas
+- src/models/qwen4exp.cpp and src/models/delta-net-base.cpp: Qwen execution,
+  hyper-connections, PLE, DeltaNet and QSA reference math
+- src/llama-vocab.cpp: qwen35 pre-tokenization expression
+https://github.com/memoriaru/llama.cpp/tree/555d1ec9daa4564cb06adb39c469acfdcd1d1e93
+
+Qwen formulas were also cross-checked against mlx-vlm language.py:
+https://github.com/Blaizzy/mlx-vlm/blob/4f4634bb813c0298cb1467bed2e957526c71d0b4/mlx_vlm/models/qwen4_exp/language.py
+No MLX runtime or Python model code is embedded in the production engine.
+
+GLM5-Next formulas and the glm4 pre-tokenization expression are adapted from
+ggml-org/llama.cpp revision 08ffba21e5c2f1728b6b405c05ff3913f65706d4:
+- src/models/glm5-next.cpp: mHC, KDA, compressed NoPE MLA and pooled DSA
+- src/llama-graph.cpp: sigmoid routing, correction bias and SwiGLU limits
+- src/llama-vocab.cpp: glm4 pre-tokenization expression
+https://github.com/ggml-org/llama.cpp/tree/08ffba21e5c2f1728b6b405c05ff3913f65706d4
+Q2_K uses the dequantization layout in the existing fixed ggml source above.
+Q4_K, Q5_K, IQ2_XS and IQ3_XXS (kernels/iq3_mix.metal) and the iq2xs_grid and
+iq3xxs_grid codebooks in kernels/quant_tables.metal are adapted from
+ggml-org/llama.cpp revision 9b56ccf00d755b0bf780140f6352a67db1ac0378:
+- ggml/src/ggml-common.h: block_q4_K, block_q5_K, block_iq2_xs, block_iq3_xxs,
+  iq2xs_grid and iq3xxs_grid
+- ggml/src/ggml-quants.c: get_scale_min_k4 and the dequantize_row_q4_K,
+  dequantize_row_q5_K, dequantize_row_iq2_xs and dequantize_row_iq3_xxs formulas
+https://github.com/ggml-org/llama.cpp/tree/9b56ccf00d755b0bf780140f6352a67db1ac0378
+GLM formulas were also cross-checked against the fixed mlx-vlm GLM implementation:
+https://github.com/Blaizzy/mlx-vlm/blob/4f4634bb813c0298cb1467bed2e957526c71d0b4/mlx_vlm/models/glm5_next/language.py
+
+The Rust loader, execution schedule, session management and Metal compute
+kernels are part of this project.
+The following notice applies to the adapted third-party material:
+
+MIT License
+
+Copyright (c) 2023-2026 The ggml authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+The shared tile candidate reuses operand threadgroup storage for the
+post-compute output tail, with an explicit barrier before aliasing. F32
+expressions, tile shapes and fixed ggml layout attribution are unchanged.
+
+The IQ2 scalar lane experiment adapts the 32-value group ownership and scale
+factoring from ggml/src/ggml-metal/kernels/mul_mv.metal at revision
+555d1ec9daa4564cb06adb39c469acfdcd1d1e93, covered by the MIT notice above.
+
+The F32 packed attention candidate adapts eight-query/64-key matrix tiling
+and online softmax rescaling from ggml/src/ggml-metal/kernels/fa.metal at
+revision 555d1ec9daa4564cb06adb39c469acfdcd1d1e93, under the MIT notice above.
+The implementation retains F32 query staging and the exact QSA mask.
+
+The generic-path matrix-vector kernels in kernels/generic.metal (mv_q4k,
+mv_q6k, mv_q4_0) adapt kernel_mul_mv_q4_K_f32_impl, kernel_mul_mv_q6_K_f32_impl
+and mul_vec_q_n_f32_impl from ggml/src/ggml-metal/kernels/mul_mv.metal at
+ggml-org/llama.cpp revision 9b56ccf00d755b0bf780140f6352a67db1ac0378, under the
+MIT notice above. The F16 and F32 vector kernels share that structure, and the
+prefill GEMM kernels in the same file (gemm_q4k, gemm_q6k, gemm_q4_0) follow
+kernel_mul_mm from the same revision.
+
+The material below also comes from ggml-org/llama.cpp revision
+9b56ccf00d755b0bf780140f6352a67db1ac0378, under the MIT notice above:
+- src/spm.rs ports the SentencePiece and gemma4 tokenizers from
+  src/llama-vocab.cpp.
+- src/generic.rs, src/generic_arch.rs, kernels/generic.metal and
+  kernels/generic_arch.metal follow the graphs in src/models/ (llama, qwen2,
+  qwen3, qwen3moe, gemma3, gemma4, phi3) and the GeGLU approximation in ggml.
+- src/image.rs, src/vision.rs and kernels/vision.metal follow the Qwen-VL image
+  preprocessing and encoder in tools/mtmd/ (clip.cpp, mtmd-image.cpp,
+  models/qwen3vl.cpp).
+
+The bicubic resize in src/image.rs reproduces the fixed-point resampling of
+Pillow (src/libImaging/Resample.c) so that its output matches. Pillow's notice:
+
+The Python Imaging Library (PIL) is
+
+    Copyright © 1997-2011 by Secret Labs AB
+    Copyright © 1995-2011 by Fredrik Lundh and contributors
+
+Pillow is the friendly PIL fork. It is
+
+    Copyright © 2010 by Jeffrey 'Alex' Clark and contributors
+
+Like PIL, Pillow is licensed under the open source MIT-CMU License:
+
+By obtaining, using, and/or copying this software and/or its associated
+documentation, you agree that you have read, understood, and will comply
+with the following terms and conditions:
+
+Permission to use, copy, modify and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
+provided that the above copyright notice appears in all copies, and that
+both that copyright notice and this permission notice appear in supporting
+documentation, and that the name of Secret Labs AB or the author not be
+used in advertising or publicity pertaining to distribution of the software
+without specific, written prior permission.
+
+SECRET LABS AB AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.
+IN NO EVENT SHALL SECRET LABS AB OR THE AUTHOR BE LIABLE FOR ANY SPECIAL,
+INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+
+tests/fixtures/ holds chat templates read from model GGUF metadata; they are
+test inputs for this project and remain under the terms of those models.

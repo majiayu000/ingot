@@ -1,0 +1,80 @@
+{
+  "stage": "single qwen4exp FFN; no attention, residual, tokenizer or text generation",
+  "model": "Qwen3.8-Flash-Next-GSQ-RCO-IQ2_XS-00001-of-00002.gguf",
+  "layer": 0,
+  "reference": "pinned ggml C dequantization plus NumPy; independent of Metal kernels",
+  "binary_sha256": "fb80e05f33085060e9898259029f6dbd46bcbafd9729fa8ab8a9b6d475168af7",
+  "ggml_sha256": "3025983970ac50639dbdfaec5034719a1316867ede59ce3be8f66f768fc767e5",
+  "numpy_version": "2.4.3",
+  "formats": [
+    "BF16",
+    "IQ2_S",
+    "IQ3_S",
+    "IQ4_NL",
+    "IQ4_XS",
+    "Q2_0"
+  ],
+  "cases": [
+    {
+      "case": "normal",
+      "device": "Apple M2 Max",
+      "selected_experts": [
+        134,
+        314,
+        343,
+        64,
+        500,
+        26,
+        105,
+        325,
+        254,
+        92
+      ],
+      "max_abs_error": 2.306465122225987e-07,
+      "relative_l2_error": 3.168174905541506e-07,
+      "output_protection": "passed",
+      "invalid_input": "passed"
+    },
+    {
+      "case": "small",
+      "device": "Apple M2 Max",
+      "selected_experts": [
+        75,
+        270,
+        455,
+        97,
+        176,
+        432,
+        352,
+        349,
+        481,
+        7
+      ],
+      "max_abs_error": 1.0667316456428131e-11,
+      "relative_l2_error": 2.773781196028639e-07,
+      "output_protection": "passed",
+      "invalid_input": "passed"
+    },
+    {
+      "case": "zero_ties",
+      "device": "Apple M2 Max",
+      "selected_experts": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "max_abs_error": 0.0,
+      "relative_l2_error": 0.0,
+      "output_protection": "passed",
+      "invalid_input": "passed"
+    }
+  ],
+  "speed_comparison": "not performed"
+}

@@ -1,0 +1,10 @@
+build*/
+evidence/
+/models/
+.venv/
+__pycache__/
+*.pyc
+*.gguf
+.DS_Store
+/target/
+/dist/

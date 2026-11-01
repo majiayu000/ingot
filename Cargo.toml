@@ -1,0 +1,34 @@
+[package]
+name = "ingot"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+publish = false
+description = "Native Rust and Metal Qwen and GLM MoE engine"
+
+[dependencies]
+memmap2 = "=0.9.11"
+rayon = "=1.12.0"
+objc2 = "0.6.4"
+objc2-foundation = "0.3.2"
+objc2-metal = "0.3.2"
+
+ahash = "=0.8.12"
+tokenizers = { version = "=0.22.1", default-features = false, features = ["onig"] }
+serde_json = { version = "=1.0.153", features = ["preserve_order"] }
+ureq = { version = "=3.5.0", default-features = false, features = ["rustls"] }
+sha2 = { version = "=0.10.9", features = ["asm"] }
+minijinja = { version = "=3.0.3", features = ["json", "loop_controls", "preserve_order", "serde"] }
+minijinja-contrib = { version = "=3.0.3", features = ["pycompat"] }
+png = "=0.18.1"
+zune-jpeg = "=0.5.15"
+base64 = "=0.23.1"
+
+[dev-dependencies]
+
+[profile.release]
+lto = "thin"
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"

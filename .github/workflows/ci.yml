@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  msrv:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Minimum supported Rust toolchain
+        run: rustup toolchain install 1.88.0 --profile minimal
+      - name: Check all targets on Rust 1.88
+        run: cargo +1.88.0 check --release --locked --all-targets
+
+  check:
+    runs-on: macos-14
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --release --locked --lib --bin ingot --example bench_tokens -- -D warnings
+      # These tests need neither a Metal device nor model weights.
+      - name: Host-only unit tests
+        run: >-
+          cargo test --release --locked --lib -- --skip 'metal::' --skip 'weights::tests::'
+      - name: CLI entry point tests (no model or GPU)
+        run: cargo test --release --locked --bin ingot --test cli
+      - name: Native validation orchestration (mocked, no weights)
+        run: bash tests/native_validation.sh
+      # metal::* and weights::tests::* create a Metal device and run kernels.
+      # Hosted macOS runners are virtual machines with a paravirtualized GPU
+      # whose Metal feature set differs from real Apple Silicon, so failures
+      # here are reported but do not fail the job.
+      - name: Metal unit tests (informational)
+        continue-on-error: true
+        run: >-
+          cargo test --release --locked --lib -- 'metal::' 'weights::tests::'

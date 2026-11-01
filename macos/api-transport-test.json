@@ -1,0 +1,15 @@
+{
+  "fixture": "synthetic fully MoE adaptation of tiny-random/qwen3-moe; random weights; transport only",
+  "baseline_equal": true,
+  "usage": {
+    "completion_tokens": 24,
+    "prompt_tokens": 13,
+    "total_tokens": 37,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "stream_cancel_after_events": 4,
+  "after_cancel_equal": true,
+  "SSE_done": true
+}

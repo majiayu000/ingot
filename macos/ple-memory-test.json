@@ -1,0 +1,17 @@
+{
+  "fixture": "two-layer synthetic qwen4exp with PLE on recurrent layer; random small weights and sparse zero-filled table",
+  "ple_heads": 16,
+  "ple_rows": 320001446,
+  "ple_row_width": 16,
+  "ple_dtype": "F16",
+  "ple_logical_bytes": 10240046272,
+  "fixture_file_bytes": 10259157280,
+  "fixture_allocated_bytes": 19578880,
+  "maximum_resident_bytes": 128139264,
+  "peak_memory_footprint_bytes": 55730000,
+  "prompt_tokens": 32,
+  "generated_tokens": 32,
+  "expert_file_pools": 4,
+  "lazy_PLE": true,
+  "limitation": "Sparse zero pages prove lazy mapping and graph integration, not physical SSD throughput or language quality."
+}

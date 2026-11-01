@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+      - name: Check tag matches Cargo.toml version
+        run: |
+          pkgid="$(cargo pkgid)"
+          version="${pkgid##*[#@]}"
+          if [[ "${GITHUB_REF_NAME}" != "v${version}" ]]; then
+            echo "tag ${GITHUB_REF_NAME} does not match Cargo.toml version ${version}" >&2
+            exit 1
+          fi
+      - name: Build and package
+        run: ./scripts/release.sh
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" --draft --verify-tag \
+            --title "${GITHUB_REF_NAME}" \
+            --notes "Draft package only. Before publishing, review the native acceptance report for this commit from scripts/validate-native.sh and record tested hardware and weights. See README.md and CHANGELOG.md." \
+            dist/*.tar.gz dist/*.tar.gz.sha256

@@ -1,0 +1,432 @@
+{
+  "version": 1,
+  "description": "Authored fixed holdout, 20 Chinese comprehension / 20 Python semantics / 20 math tasks; never used for shortlist frequency training. Existing 1040 generated-function checks remain separate. Parse and compare JSON values, not prose bytes.",
+  "tasks": [
+    {
+      "id": "chinese-01",
+      "category": "chinese",
+      "prompt": "小林比小周早到，小周比小陈早到。三人中谁最晚到？只输出人名字符串。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": "小陈"
+    },
+    {
+      "id": "chinese-02",
+      "category": "chinese",
+      "prompt": "所有鲸都是哺乳动物，有些哺乳动物会飞。能否必然推出有些鲸会飞？输出布尔值。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": false
+    },
+    {
+      "id": "chinese-03",
+      "category": "chinese",
+      "prompt": "小王原有红球3个、蓝球2个，送出一个红球后买入4个蓝球。输出按红、蓝顺序的数量数组。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        2,
+        6
+      ]
+    },
+    {
+      "id": "chinese-04",
+      "category": "chinese",
+      "prompt": "原句“这项计划并非毫无风险”是否断言计划完全安全？输出布尔值。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": false
+    },
+    {
+      "id": "chinese-05",
+      "category": "chinese",
+      "prompt": "通知说“仅周一和周三开放”，周二能按该通知进入吗？输出布尔值。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": false
+    },
+    {
+      "id": "chinese-06",
+      "category": "chinese",
+      "prompt": "从“上海：阴，18℃；北京：晴，11℃；成都：雨，16℃”提取下雨的城市，只输出字符串。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": "成都"
+    },
+    {
+      "id": "chinese-07",
+      "category": "chinese",
+      "prompt": "“除非下雨，否则比赛举行”。已知没有下雨，能否确定比赛举行？输出布尔值。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": true
+    },
+    {
+      "id": "chinese-08",
+      "category": "chinese",
+      "prompt": "会议原定14:30，推迟45分钟。输出24小时制时间字符串。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": "15:15"
+    },
+    {
+      "id": "chinese-09",
+      "category": "chinese",
+      "prompt": "甲乙丙排队，甲不在第一也不在最后。谁在中间？输出姓名字符串。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": "甲"
+    },
+    {
+      "id": "chinese-10",
+      "category": "chinese",
+      "prompt": "一张票限一人使用，三人同时入场最少需要几张票？只输出整数。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 3
+    },
+    {
+      "id": "chinese-11",
+      "category": "chinese",
+      "prompt": "“至少两个”是否包含恰好两个？输出布尔值。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": true
+    },
+    {
+      "id": "chinese-12",
+      "category": "chinese",
+      "prompt": "“不超过五个”是否包含六个？输出布尔值。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": false
+    },
+    {
+      "id": "chinese-13",
+      "category": "chinese",
+      "prompt": "小张在小李左边，小赵在小张左边。按从左到右输出三人的姓名数组。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        "小赵",
+        "小张",
+        "小李"
+      ]
+    },
+    {
+      "id": "chinese-14",
+      "category": "chinese",
+      "prompt": "请将中文数字“二千零六”转成阿拉伯整数，只输出整数。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 2006
+    },
+    {
+      "id": "chinese-15",
+      "category": "chinese",
+      "prompt": "密码提示文本为“不要把答案当作密码”。这段文本有没有提供实际密码？输出布尔值。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": false
+    },
+    {
+      "id": "chinese-16",
+      "category": "chinese",
+      "prompt": "筛选“龘、垚、山、淼”中由三个相同汉字构成的字，保持原顺序，输出字符串数组。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        "龘",
+        "垚",
+        "淼"
+      ]
+    },
+    {
+      "id": "chinese-17",
+      "category": "chinese",
+      "prompt": "如果文件不存在则创建，否则读取。文件已经存在，应执行什么？输出“创建”或“读取”的字符串。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": "读取"
+    },
+    {
+      "id": "chinese-18",
+      "category": "chinese",
+      "prompt": "文本“费用不含税”。能否据此判断费用已经包含税款？输出布尔值。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": false
+    },
+    {
+      "id": "chinese-19",
+      "category": "chinese",
+      "prompt": "仓库周末不发货，周日收到订单。能否保证当天发货？输出布尔值。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": false
+    },
+    {
+      "id": "chinese-20",
+      "category": "chinese",
+      "prompt": "一份名单是“李，王，李，陈，王”。按首次出现顺序去重，只输出字符串数组。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        "李",
+        "王",
+        "陈"
+      ]
+    },
+    {
+      "id": "math-01",
+      "category": "math",
+      "prompt": "计算 17×23。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 391
+    },
+    {
+      "id": "math-02",
+      "category": "math",
+      "prompt": "计算 1/2 + 1/3，用最简分数字符串回答。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": "5/6"
+    },
+    {
+      "id": "math-03",
+      "category": "math",
+      "prompt": "商品原价240元，先打八折再减30元，实付多少元？ 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 162
+    },
+    {
+      "id": "math-04",
+      "category": "math",
+      "prompt": "等差数列3,7,11,...第10项是多少？ 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 39
+    },
+    {
+      "id": "math-05",
+      "category": "math",
+      "prompt": "袋中3个红球2个蓝球，不放回抽2个，均为红球的概率是多少？用最简分数字符串回答。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": "3/10"
+    },
+    {
+      "id": "math-06",
+      "category": "math",
+      "prompt": "解方程3x+7=22，输出x。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 5
+    },
+    {
+      "id": "math-07",
+      "category": "math",
+      "prompt": "长方形长12宽7，周长是多少？ 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 38
+    },
+    {
+      "id": "math-08",
+      "category": "math",
+      "prompt": "计算 -7 的平方。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 49
+    },
+    {
+      "id": "math-09",
+      "category": "math",
+      "prompt": "五个数2,4,4,8,12的中位数是多少？ 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 4
+    },
+    {
+      "id": "math-10",
+      "category": "math",
+      "prompt": "三个数6,10,14的平均数是多少？ 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 10
+    },
+    {
+      "id": "math-11",
+      "category": "math",
+      "prompt": "80增加25%后是多少？ 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 100
+    },
+    {
+      "id": "math-12",
+      "category": "math",
+      "prompt": "100先增加20%再减少20%，最终是多少？ 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 96
+    },
+    {
+      "id": "math-13",
+      "category": "math",
+      "prompt": "速度60千米/小时，行驶90分钟，距离多少千米？ 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 90
+    },
+    {
+      "id": "math-14",
+      "category": "math",
+      "prompt": "计算2的10次方。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 1024
+    },
+    {
+      "id": "math-15",
+      "category": "math",
+      "prompt": "在1到100的整数中，能被3整除的有多少个？ 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 33
+    },
+    {
+      "id": "math-16",
+      "category": "math",
+      "prompt": "求18与24的最大公约数。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 6
+    },
+    {
+      "id": "math-17",
+      "category": "math",
+      "prompt": "求8与12的最小公倍数。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 24
+    },
+    {
+      "id": "math-18",
+      "category": "math",
+      "prompt": "一枚公平硬币连抛3次恰好2次正面的概率是多少？用最简分数字符串回答。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": "3/8"
+    },
+    {
+      "id": "math-19",
+      "category": "math",
+      "prompt": "把十进制26写成二进制数字字符串，不带前缀。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": "11010"
+    },
+    {
+      "id": "math-20",
+      "category": "math",
+      "prompt": "每本书35元，买4本，付200元，找零多少元？ 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 60
+    },
+    {
+      "id": "code-01",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 list(range(1, 8, 2)) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        1,
+        3,
+        5,
+        7
+      ]
+    },
+    {
+      "id": "code-02",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 sorted([3, 1, 2, 1]) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        1,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "code-03",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 sum(x*x for x in [1, -2, 3]) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 14
+    },
+    {
+      "id": "code-04",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 list(dict.fromkeys([\"b\", \"a\", \"b\", \"c\"])) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        "b",
+        "a",
+        "c"
+      ]
+    },
+    {
+      "id": "code-05",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 \"abcdef\"[1:5:2] 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": "bd"
+    },
+    {
+      "id": "code-06",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 list(reversed([1, 2, 3])) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        3,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "code-07",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 7 // -3 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": -3
+    },
+    {
+      "id": "code-08",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 7 % -3 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": -2
+    },
+    {
+      "id": "code-09",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 bool([]) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": false
+    },
+    {
+      "id": "code-10",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 all([]) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": true
+    },
+    {
+      "id": "code-11",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 any([]) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": false
+    },
+    {
+      "id": "code-12",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 len(set([1, True, 1.0, 2])) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 2
+    },
+    {
+      "id": "code-13",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 [x for x in range(6) if x % 2 == 0] 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        0,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "code-14",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 list(zip([1, 2, 3], [\"a\", \"b\"])) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        [
+          1,
+          "a"
+        ],
+        [
+          2,
+          "b"
+        ]
+      ]
+    },
+    {
+      "id": "code-15",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 \"  a,b,,c  \".strip().split(\",\") 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        "a",
+        "b",
+        "",
+        "c"
+      ]
+    },
+    {
+      "id": "code-16",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 sorted({\"z\": 1, \"a\": 2}) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        "a",
+        "z"
+      ]
+    },
+    {
+      "id": "code-17",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 max([3, -1, 7], key=abs) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 7
+    },
+    {
+      "id": "code-18",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 [(i, j) for i in [1, 2] for j in [3]] 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ]
+      ]
+    },
+    {
+      "id": "code-19",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 list(map(lambda x: x + 1, [2, 4])) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": [
+        3,
+        5
+      ]
+    },
+    {
+      "id": "code-20",
+      "category": "code",
+      "prompt": "按 Python 3 语义，表达式 sum([False, True, True]) 的结果是什么？元组用 JSON 数组表示。 只输出一个 JSON 值，不要代码块或解释。",
+      "expected": 2
+    }
+  ]
+}

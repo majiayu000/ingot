@@ -1,0 +1,196 @@
+{
+  "hardware": "Apple M2 Max, 96 GB unified memory",
+  "model_repository": "ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF",
+  "model_revision": "ed59f92082b1e93c0e96d60a8b11aab089b52f09",
+  "weights": [
+    {
+      "filename": "Qwen3.8-Flash-Next-GSQ-RCO-IQ2_XS-00001-of-00002.gguf",
+      "bytes": 39225954592,
+      "sha256": "92cee27ae5bbadcd732416a0f7a7f0acc092399dbbe8f5a5efa707c2ec0a49d7",
+      "verification": "Downloader SHA-256 comparison passed before final rename; downloader exited 0"
+    },
+    {
+      "filename": "Qwen3.8-Flash-Next-GSQ-RCO-IQ2_XS-00002-of-00002.gguf",
+      "bytes": 28800138432,
+      "sha256": "316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113",
+      "verification": "Downloader SHA-256 comparison passed before final rename; downloader exited 0"
+    }
+  ],
+  "context_size": 8192,
+  "microbatch": 4,
+  "expert_slots": 64,
+  "file_bound_pools": 144,
+  "greedy_cases": [
+    {
+      "request": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "计算 17 × 23。只给出结果。"
+          }
+        ],
+        "max_tokens": 128,
+        "temperature": 0,
+        "seed": 17,
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        },
+        "cache_prompt": false,
+        "stream": false
+      },
+      "message": {
+        "role": "assistant",
+        "content": "391"
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "completion_tokens": 4,
+        "prompt_tokens": 25,
+        "total_tokens": 29,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 25,
+        "prompt_ms": 880.828,
+        "prompt_per_token_ms": 35.23312,
+        "prompt_per_second": 28.382385664397592,
+        "predicted_n": 4,
+        "predicted_ms": 192.259,
+        "predicted_per_token_ms": 64.08633333333333,
+        "predicted_per_second": 15.603950920373041
+      },
+      "equals_resident_message_and_usage": true
+    },
+    {
+      "request": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "用中文、两句话解释 Apple Silicon 的统一内存。"
+          }
+        ],
+        "max_tokens": 128,
+        "temperature": 0,
+        "seed": 17,
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        },
+        "cache_prompt": false,
+        "stream": false
+      },
+      "message": {
+        "role": "assistant",
+        "content": "Apple Silicon 的统一内存架构将 CPU、GPU 和神经引擎等组件直接连接到同一块物理内存上，消除了传统架构中不同处理器间数据复制的开销。这种设计显著提升了数据访问速度、降低了延迟，并大幅提高了整体能效比。"
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "completion_tokens": 55,
+        "prompt_tokens": 24,
+        "total_tokens": 79,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 24,
+        "prompt_ms": 750.034,
+        "prompt_per_token_ms": 31.251416666666668,
+        "prompt_per_second": 31.99854939909391,
+        "predicted_n": 55,
+        "predicted_ms": 3151.251,
+        "predicted_per_token_ms": 58.356500000000004,
+        "predicted_per_second": 17.136051682331875
+      },
+      "equals_resident_message_and_usage": true
+    },
+    {
+      "request": {
+        "messages": [
+          {
+            "role": "user",
+            "content": "Explain why an SSD expert cache saves RAM in two sentences."
+          }
+        ],
+        "max_tokens": 128,
+        "temperature": 0,
+        "seed": 17,
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        },
+        "cache_prompt": false,
+        "stream": false
+      },
+      "message": {
+        "role": "assistant",
+        "content": "An SSD expert cache stores frequently accessed data on faster storage, reducing the need to keep large amounts of data resident in RAM. This allows the system to offload memory-intensive tasks to the SSD, thereby freeing up RAM for other processes."
+      },
+      "finish_reason": "stop",
+      "usage": {
+        "completion_tokens": 48,
+        "prompt_tokens": 25,
+        "total_tokens": 73,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        }
+      },
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 25,
+        "prompt_ms": 852.364,
+        "prompt_per_token_ms": 34.09456,
+        "prompt_per_second": 29.330192265276334,
+        "predicted_n": 48,
+        "predicted_ms": 2886.158,
+        "predicted_per_token_ms": 61.40761702127659,
+        "predicted_per_second": 16.284624750273547
+      },
+      "equals_resident_message_and_usage": true
+    }
+  ],
+  "SSE": {
+    "request": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "计算 17 × 23。只给出结果。"
+        }
+      ],
+      "max_tokens": 128,
+      "temperature": 0,
+      "seed": 17,
+      "chat_template_kwargs": {
+        "enable_thinking": false
+      },
+      "cache_prompt": false,
+      "stream": true
+    },
+    "done": true,
+    "content": "391",
+    "chunk_count": 5,
+    "objects": [
+      "chat.completion.chunk"
+    ]
+  },
+  "cancellation": {
+    "content_chunks_before_close": 3,
+    "server_cancel_log_observed": true,
+    "recovery_message": {
+      "role": "assistant",
+      "content": "391"
+    },
+    "recovery_usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 25,
+      "total_tokens": 29,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    }
+  },
+  "limitations": "Three short prompts establish a working target-model graph, API and output parity; they are not a broad language-quality or long-context evaluation. Timings here are individual requests with uncontrolled OS file cache.",
+  "implementation": "parallel pread directly into confirmed Metal shared slots"
+}

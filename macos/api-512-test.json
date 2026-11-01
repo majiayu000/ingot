@@ -1,0 +1,38 @@
+{
+  "fixture": "70MB synthetic Qwen3 MoE: 512 distinct random experts, top-10, seed 51210; random tokenizer embeddings; integration only",
+  "slot_count": 64,
+  "microbatch": 4,
+  "max_experts_per_microbatch": 40,
+  "resident_greedy_equal": true,
+  "usage": {
+    "completion_tokens": 24,
+    "prompt_tokens": 35,
+    "total_tokens": 59,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "SSE_done": true,
+  "cancel_events": 4,
+  "after_cancel_equal": true,
+  "prefill_pool_update_log_lines": 15,
+  "prefill_prompt_tokens": 128,
+  "generation_tokens_in_prefill_probe": 0,
+  "prefill_pool_statistics": [
+    "ggml_backend_sched_update_expert_pool: 'blk.0.ffn_gate_exps.weight' hit rate 0.0% (0 hits / 30 misses), 34 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.0.ffn_up_exps.weight' hit rate 0.0% (0 hits / 30 misses), 34 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.0.ffn_down_exps.weight' hit rate 0.0% (0 hits / 30 misses), 34 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.0.ffn_gate_exps.weight' hit rate 73.5% (385 hits / 139 misses), 0 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.0.ffn_up_exps.weight' hit rate 73.5% (385 hits / 139 misses), 0 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.0.ffn_down_exps.weight' hit rate 73.5% (385 hits / 139 misses), 0 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.1.ffn_gate_exps.weight' hit rate 0.0% (0 hits / 10 misses), 54 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.1.ffn_up_exps.weight' hit rate 0.0% (0 hits / 10 misses), 54 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.1.ffn_down_exps.weight' hit rate 0.0% (0 hits / 10 misses), 54 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.0.ffn_gate_exps.weight' hit rate 65.6% (675 hits / 354 misses), 0 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.0.ffn_up_exps.weight' hit rate 65.6% (675 hits / 354 misses), 0 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.0.ffn_down_exps.weight' hit rate 65.6% (675 hits / 354 misses), 0 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.0.ffn_gate_exps.weight' hit rate 65.4% (1021 hits / 539 misses), 0 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.0.ffn_up_exps.weight' hit rate 65.4% (1021 hits / 539 misses), 0 of 64 slots free",
+    "ggml_backend_sched_update_expert_pool: 'blk.0.ffn_down_exps.weight' hit rate 65.4% (1021 hits / 539 misses), 0 of 64 slots free"
+  ]
+}
