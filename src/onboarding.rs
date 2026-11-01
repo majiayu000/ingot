@@ -27,12 +27,8 @@ pub fn main(args: &[OsString]) -> Result<()> {
     let manifest = Manifest::builtin()?;
     let root = models::default_dir()?;
     let endpoint = std::env::var("HF_ENDPOINT").unwrap_or_else(|_| "https://huggingface.co".into());
-    let (device, working_set) = models::working_set()?;
-    let mac = Mac {
-        device,
-        cap_gib: models::budget_cap_gib(working_set),
-        free_bytes: models::free_bytes(&root)?,
-    };
+    // Arguments are checked first: a failed probe only stops the menu.
+    let mac = Mac::probe(&root);
     let selected = {
         let stdin = io::stdin();
         let mut reader = stdin.lock();
@@ -53,7 +49,7 @@ pub fn main(args: &[OsString]) -> Result<()> {
     if let Some(selected) = selected {
         let mut args = vec![OsString::from(&selected)];
         // Keep the context the recommendation was based on.
-        if let Ok(model) = manifest.get(&selected)
+        if let (Ok(model), Ok(mac)) = (manifest.get(&selected), &mac)
             && let Some(context) = model.fitting_context(mac.cap_gib)
         {
             args.push(context.to_string().into());
@@ -70,6 +66,17 @@ struct Mac {
     cap_gib: u64,
     /// Free space on the model disk.
     free_bytes: u64,
+}
+
+impl Mac {
+    fn probe(root: &Path) -> Result<Self> {
+        let (device, working_set) = models::working_set()?;
+        Ok(Self {
+            device,
+            cap_gib: models::budget_cap_gib(working_set),
+            free_bytes: models::free_bytes(root)?,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -133,7 +140,7 @@ fn prepare(
     yes: bool,
     mut input: Option<&mut dyn BufRead>,
     output: &mut dyn Write,
-    mac: &Mac,
+    mac: &Result<Mac>,
     endpoint: &str,
 ) -> Result<Option<String>> {
     let (model, present) = if let Some(name) = name {
@@ -159,6 +166,9 @@ fn prepare(
             .filter(|m| m.kind == Kind::Main)
             .map(|m| Ok((m, installed(manifest, m, root)?)))
             .collect::<Result<Vec<_>>>()?;
+        let mac = mac
+            .as_ref()
+            .map_err(|error| io::Error::new(error.kind(), error.to_string()))?;
         let default = recommended(&choices, mac);
         writeln!(
             output,
@@ -242,24 +252,31 @@ fn prepare(
     writeln!(
         output,
         "\n{} needs {:.1} GiB of model files. Existing files and partial downloads are reused.\n\
-Destination: {} ({:.0} GiB free)\n\
-{}\n\
-Optional draft weights will not be downloaded.",
+Destination: {}",
         model.name,
         gib(model.download_bytes()),
         root.display(),
-        gib(mac.free_bytes),
+    )?;
+    if let Ok(mac) = mac {
+        writeln!(output, "Free disk space: {:.0} GiB", gib(mac.free_bytes))?;
         match fit(model, present, mac) {
-            Fit::Memory(context) =>
-                format!("It runs in memory on this Mac, with a context of {context} tokens."),
-            Fit::Streaming => "Warning: it does not fit in memory here. Experts stream from SSD, so it runs slowly.".into(),
-            Fit::TooLarge => format!(
+            Fit::Memory(context) => writeln!(
+                output,
+                "It runs in memory on this Mac, with a context of {context} tokens."
+            )?,
+            Fit::Streaming => writeln!(
+                output,
+                "Warning: it does not fit in memory here. Experts stream from SSD, so it runs slowly."
+            )?,
+            Fit::TooLarge => writeln!(
+                output,
                 "Warning: this Mac has {} GiB of memory for models, too little to run it.",
                 mac.cap_gib
-            ),
-            Fit::NoDisk => "Warning: there may not be enough free disk space.".into(),
-        },
-    )?;
+            )?,
+            Fit::NoDisk => writeln!(output, "Warning: there may not be enough free disk space.")?,
+        }
+    }
+    writeln!(output, "Optional draft weights will not be downloaded.")?;
     if !yes {
         let reader = input.ok_or_else(|| {
             invalid(format!(
@@ -385,6 +402,49 @@ mod tests {
     }
 
     #[test]
+    fn without_metal_arguments_are_still_checked_and_the_menu_fails_clearly() {
+        let dir = Temp::new();
+        let no_metal = || Err(io::Error::other("Metal device unavailable"));
+        let error = prepare(
+            &manifest(),
+            &dir.0,
+            Some("small"),
+            false,
+            None,
+            &mut Vec::new(),
+            &no_metal(),
+            NO_SERVER,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("--yes"));
+        let error = prepare(
+            &manifest(),
+            &dir.0,
+            None,
+            false,
+            None,
+            &mut Vec::new(),
+            &no_metal(),
+            NO_SERVER,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("specify"));
+        let mut input = Cursor::new("");
+        let error = prepare(
+            &manifest(),
+            &dir.0,
+            None,
+            false,
+            Some(&mut input),
+            &mut Vec::new(),
+            &no_metal(),
+            NO_SERVER,
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("Metal device unavailable"));
+    }
+
+    #[test]
     fn recommendation_follows_memory_disk_and_downloads() {
         let huge = sized("huge", vec![(8192, 41.0)], Some(8.0), 63);
         let mid = sized("mid", vec![(2048, 5.8), (8192, 7.5)], None, 5);
@@ -442,7 +502,7 @@ mod tests {
                     false,
                     Some(&mut input),
                     &mut out,
-                    &mac(),
+                    &Ok(mac()),
                     NO_SERVER
                 )
                 .unwrap(),
@@ -471,7 +531,7 @@ mod tests {
                 false,
                 Some(&mut input),
                 &mut out,
-                &mac(),
+                &Ok(mac()),
                 NO_SERVER
             )
             .unwrap(),
@@ -496,7 +556,7 @@ mod tests {
                     false,
                     Some(&mut input),
                     &mut Vec::new(),
-                    &mac(),
+                    &Ok(mac()),
                     NO_SERVER
                 )
                 .unwrap(),
@@ -517,7 +577,7 @@ mod tests {
                 yes,
                 None,
                 &mut Vec::new(),
-                &mac(),
+                &Ok(mac()),
                 NO_SERVER,
             )
             .unwrap_err();
@@ -541,7 +601,7 @@ mod tests {
                     false,
                     None,
                     &mut Vec::new(),
-                    &mac(),
+                    &Ok(mac()),
                     NO_SERVER
                 )
                 .unwrap()
@@ -563,7 +623,7 @@ mod tests {
                     true,
                     None,
                     &mut Vec::new(),
-                    &mac(),
+                    &Ok(mac()),
                     NO_SERVER
                 )
                 .is_err()
@@ -580,7 +640,7 @@ mod tests {
             true,
             None,
             &mut Vec::new(),
-            &mac(),
+            &Ok(mac()),
             NO_SERVER,
         )
         .unwrap_err();
@@ -635,7 +695,7 @@ mod tests {
                 false,
                 Some(&mut input),
                 &mut Vec::new(),
-                &mac(),
+                &Ok(mac()),
                 &endpoint,
             );
             assert!(
