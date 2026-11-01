@@ -21,6 +21,7 @@ ureq = { version = "=3.5.0", default-features = false, features = ["rustls"] }
 sha2 = { version = "=0.10.9", features = ["asm"] }
 minijinja = { version = "=3.0.3", features = ["json", "loop_controls", "preserve_order", "serde"] }
 minijinja-contrib = { version = "=3.0.3", features = ["pycompat"] }
+libc = "=0.2.190"
 png = "=0.18.1"
 zune-jpeg = "=0.5.15"
 base64 = "=0.23.1"

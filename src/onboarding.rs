@@ -9,7 +9,8 @@ pub const USAGE: &str = "usage: ingot run [MODEL] [--yes]
 
 Choose a model, download it if needed, and start chatting.
 MODEL is a name from `ingot models` or the path to a local GGUF file.
-Without MODEL, an interactive menu prefers an already downloaded model.
+Without MODEL, an interactive menu recommends the best model for this Mac and
+prefers one that is already downloaded.
 Downloads require confirmation; --yes explicitly accepts the download size.
 For chat settings, use `ingot chat --help` after downloading a model.";
 
@@ -26,6 +27,12 @@ pub fn main(args: &[OsString]) -> Result<()> {
     let manifest = Manifest::builtin()?;
     let root = models::default_dir()?;
     let endpoint = std::env::var("HF_ENDPOINT").unwrap_or_else(|_| "https://huggingface.co".into());
+    let (device, working_set) = models::working_set()?;
+    let mac = Mac {
+        device,
+        cap_gib: models::budget_cap_gib(working_set),
+        free_bytes: models::free_bytes(&root)?,
+    };
     let selected = {
         let stdin = io::stdin();
         let mut reader = stdin.lock();
@@ -39,13 +46,75 @@ pub fn main(args: &[OsString]) -> Result<()> {
             yes,
             input,
             &mut io::stderr(),
+            &mac,
             &endpoint,
         )?
     };
     if let Some(selected) = selected {
-        crate::chat::main(&[selected.into()])?;
+        let mut args = vec![OsString::from(&selected)];
+        // Keep the context the recommendation was based on.
+        if let Ok(model) = manifest.get(&selected)
+            && let Some(context) = model.fitting_context(mac.cap_gib)
+        {
+            args.push(context.to_string().into());
+        }
+        crate::chat::main(&args)?;
     }
     Ok(())
+}
+
+/// What this Mac offers a model.
+struct Mac {
+    device: String,
+    /// Engine memory available by default.
+    cap_gib: u64,
+    /// Free space on the model disk.
+    free_bytes: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Fit {
+    /// Runs in memory at this context.
+    Memory(usize),
+    /// Runs with experts streamed from SSD.
+    Streaming,
+    TooLarge,
+    NoDisk,
+}
+
+fn gib(bytes: u64) -> f64 {
+    bytes as f64 / (1u64 << 30) as f64
+}
+
+fn fit(model: &Model, present: bool, mac: &Mac) -> Fit {
+    if !present && model.download_bytes() > mac.free_bytes {
+        Fit::NoDisk
+    } else if let Some(context) = model.fitting_context(mac.cap_gib) {
+        Fit::Memory(context)
+    } else if model.streams_in(mac.cap_gib) {
+        Fit::Streaming
+    } else {
+        Fit::TooLarge
+    }
+}
+
+/// Best choice: a downloaded model that runs in memory, then a new one, then
+/// slower options. Longer context wins, then manifest order; when nothing can
+/// run, the smallest download.
+fn recommended(choices: &[(&Model, bool)], mac: &Mac) -> usize {
+    (0..choices.len())
+        .min_by_key(|&index| {
+            let (model, present) = choices[index];
+            let (tier, context) = match fit(model, present, mac) {
+                Fit::Memory(context) => (0, context),
+                Fit::Streaming => (2, 0),
+                Fit::TooLarge | Fit::NoDisk => (4, 0),
+            };
+            let tier = tier + !present as u8;
+            let size = if tier >= 4 { model.download_bytes() } else { 0 };
+            (tier, std::cmp::Reverse(context), size, index)
+        })
+        .unwrap_or(0)
 }
 
 fn installed(manifest: &Manifest, model: &Model, root: &Path) -> Result<bool> {
@@ -56,6 +125,7 @@ fn installed(manifest: &Manifest, model: &Model, root: &Path) -> Result<bool> {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn prepare(
     manifest: &Manifest,
     root: &Path,
@@ -63,6 +133,7 @@ fn prepare(
     yes: bool,
     mut input: Option<&mut dyn BufRead>,
     output: &mut dyn Write,
+    mac: &Mac,
     endpoint: &str,
 ) -> Result<Option<String>> {
     let (model, present) = if let Some(name) = name {
@@ -88,22 +159,44 @@ fn prepare(
             .filter(|m| m.kind == Kind::Main)
             .map(|m| Ok((m, installed(manifest, m, root)?)))
             .collect::<Result<Vec<_>>>()?;
-        let default = choices
-            .iter()
-            .position(|(_, present)| *present)
-            .unwrap_or(0);
-        writeln!(output, "Welcome to ingot! Choose a model to chat with.\n")?;
+        let default = recommended(&choices, mac);
+        writeln!(
+            output,
+            "Welcome to Ingot! {}: {} GiB of memory for models, {:.0} GiB free on disk.",
+            mac.device,
+            mac.cap_gib,
+            gib(mac.free_bytes)
+        )?;
+        let (best, best_present) = choices[default];
+        match fit(best, best_present, mac) {
+            Fit::Memory(_) => writeln!(output, "Recommended for this Mac: {}.\n", best.name)?,
+            Fit::Streaming => writeln!(
+                output,
+                "Best option for this Mac: {}, streamed from SSD, so it runs slowly.\n",
+                best.name
+            )?,
+            Fit::TooLarge | Fit::NoDisk => writeln!(
+                output,
+                "No listed model fits this Mac. Free disk space or use a smaller GGUF file.\n"
+            )?,
+        }
         for (index, (model, present)) in choices.iter().enumerate() {
             writeln!(
                 output,
-                "  {}. {} — {:.1} GiB{}{}\n     {}",
+                "  {}. {} — {:.1} GiB{}{}{}\n     {}",
                 index + 1,
                 model.name,
-                model.download_bytes() as f64 / (1u64 << 30) as f64,
+                gib(model.download_bytes()),
                 if *present {
                     ", already downloaded"
                 } else {
                     " download"
+                },
+                match fit(model, *present, mac) {
+                    Fit::Memory(_) => "",
+                    Fit::Streaming => ", slow on this Mac (streams from SSD)",
+                    Fit::TooLarge => ", too large for this Mac",
+                    Fit::NoDisk => ", not enough disk space",
                 },
                 if index == default { " (default)" } else { "" },
                 model.summary,
@@ -149,13 +242,23 @@ fn prepare(
     writeln!(
         output,
         "\n{} needs {:.1} GiB of model files. Existing files and partial downloads are reused.\n\
-Destination: {}\n\
-Keep enough free space on this disk. Download time depends on your connection.\n\
-Memory is chosen automatically at startup; speed depends on your Mac.\n\
+Destination: {} ({:.0} GiB free)\n\
+{}\n\
 Optional draft weights will not be downloaded.",
         model.name,
-        model.download_bytes() as f64 / (1u64 << 30) as f64,
+        gib(model.download_bytes()),
         root.display(),
+        gib(mac.free_bytes),
+        match fit(model, present, mac) {
+            Fit::Memory(context) =>
+                format!("It runs in memory on this Mac, with a context of {context} tokens."),
+            Fit::Streaming => "Warning: it does not fit in memory here. Experts stream from SSD, so it runs slowly.".into(),
+            Fit::TooLarge => format!(
+                "Warning: this Mac has {} GiB of memory for models, too little to run it.",
+                mac.cap_gib
+            ),
+            Fit::NoDisk => "Warning: there may not be enough free disk space.".into(),
+        },
     )?;
     if !yes {
         let reader = input.ok_or_else(|| {
@@ -229,6 +332,8 @@ mod tests {
                     summary: format!("{name} test model"),
                     resident_bytes: 4,
                     draft: None,
+                    memory: vec![(2048, 2.0), (8192, 4.0)],
+                    stream_gib: None,
                     files: vec![ModelFile {
                         repo: "test/model".into(),
                         revision: "a".repeat(40),
@@ -239,6 +344,88 @@ mod tests {
                 })
                 .collect(),
         }
+    }
+
+    fn mac() -> Mac {
+        Mac {
+            device: "Test Mac".into(),
+            cap_gib: 64,
+            free_bytes: 1 << 40,
+        }
+    }
+
+    fn sized(name: &str, memory: Vec<(usize, f64)>, stream_gib: Option<f64>, gib: u64) -> Model {
+        Model {
+            name: name.into(),
+            kind: Kind::Main,
+            summary: String::new(),
+            resident_bytes: 4,
+            draft: None,
+            memory,
+            stream_gib,
+            files: vec![ModelFile {
+                repo: "test/model".into(),
+                revision: "a".repeat(40),
+                path: format!("{name}.gguf"),
+                size: gib << 30,
+                sha256: "0".repeat(64),
+            }],
+        }
+    }
+
+    fn pick(models: &[(&Model, bool)], cap_gib: u64, free_gib: u64) -> usize {
+        recommended(
+            models,
+            &Mac {
+                device: String::new(),
+                cap_gib,
+                free_bytes: free_gib << 30,
+            },
+        )
+    }
+
+    #[test]
+    fn recommendation_follows_memory_disk_and_downloads() {
+        let huge = sized("huge", vec![(8192, 41.0)], Some(8.0), 63);
+        let mid = sized("mid", vec![(2048, 5.8), (8192, 7.5)], None, 5);
+        let tiny = sized("tiny", vec![(8192, 5.0)], None, 2);
+        let free = |h, m, t| [(&huge, h), (&mid, m), (&tiny, t)];
+        // Best listed model when it fits.
+        assert_eq!(pick(&free(false, false, false), 64, 500), 0);
+        // Memory rules out the first and shortens the second's context.
+        assert_eq!(pick(&free(false, false, false), 8, 500), 1);
+        assert_eq!(pick(&free(false, false, false), 6, 500), 2);
+        // Not enough disk.
+        assert_eq!(pick(&free(false, false, false), 64, 40), 1);
+        // A downloaded model that fits beats a better one to download.
+        assert_eq!(pick(&free(false, false, true), 64, 500), 2);
+        // A downloaded model too large for memory does not beat a fitting one.
+        assert_eq!(pick(&free(true, false, false), 6, 500), 2);
+        // In-memory beats streaming; streaming beats nothing.
+        assert_eq!(pick(&[(&huge, false), (&mid, false)], 8, 500), 1);
+        let large = sized("large", vec![(8192, 30.0)], None, 30);
+        assert_eq!(pick(&[(&large, false), (&huge, false)], 8, 500), 1);
+        // With nothing runnable, offer the smallest download.
+        assert_eq!(pick(&free(false, false, false), 1, 500), 2);
+    }
+
+    #[test]
+    fn builtin_models_can_be_rated_and_small_macs_get_small_models() {
+        let manifest = Manifest::builtin().unwrap();
+        let mains: Vec<_> = manifest
+            .models
+            .iter()
+            .filter(|m| m.kind == Kind::Main)
+            .map(|m| (m, false))
+            .collect();
+        assert!(mains.iter().all(|(m, _)| !m.memory.is_empty()));
+        let name = |cap| mains[pick(&mains, cap, 1000)].0.name.as_str();
+        assert_eq!(name(73), "qwen3.8-iq2_xs");
+        assert_eq!(name(20), "qwen3-30b-a3b-q4_k_m");
+        assert_eq!(name(12), "qwen3-8b-q4_k_m");
+        assert_eq!(name(6), "gemma3-4b-it-qat-q4_0");
+        let phi = manifest.get("phi3-mini-4k-instruct-q4").unwrap();
+        assert_eq!(phi.fitting_context(73), Some(4096));
     }
 
     #[test]
@@ -255,6 +442,7 @@ mod tests {
                     false,
                     Some(&mut input),
                     &mut out,
+                    &mac(),
                     NO_SERVER
                 )
                 .unwrap(),
@@ -283,6 +471,7 @@ mod tests {
                 false,
                 Some(&mut input),
                 &mut out,
+                &mac(),
                 NO_SERVER
             )
             .unwrap(),
@@ -307,6 +496,7 @@ mod tests {
                     false,
                     Some(&mut input),
                     &mut Vec::new(),
+                    &mac(),
                     NO_SERVER
                 )
                 .unwrap(),
@@ -327,6 +517,7 @@ mod tests {
                 yes,
                 None,
                 &mut Vec::new(),
+                &mac(),
                 NO_SERVER,
             )
             .unwrap_err();
@@ -350,6 +541,7 @@ mod tests {
                     false,
                     None,
                     &mut Vec::new(),
+                    &mac(),
                     NO_SERVER
                 )
                 .unwrap()
@@ -371,6 +563,7 @@ mod tests {
                     true,
                     None,
                     &mut Vec::new(),
+                    &mac(),
                     NO_SERVER
                 )
                 .is_err()
@@ -387,6 +580,7 @@ mod tests {
             true,
             None,
             &mut Vec::new(),
+            &mac(),
             NO_SERVER,
         )
         .unwrap_err();
@@ -441,6 +635,7 @@ mod tests {
                 false,
                 Some(&mut input),
                 &mut Vec::new(),
+                &mac(),
                 &endpoint,
             );
             assert!(

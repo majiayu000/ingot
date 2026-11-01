@@ -86,6 +86,12 @@ impl Options {
         let manifest = models::Manifest::builtin()?;
         let resolved = models::resolve(&manifest, &positional[0], &models::default_dir()?)?;
         options.model = resolved.model;
+        if positional.len() == 1 + extra
+            && options.model.is_file()
+            && let Some(limit) = models::context_limit(&options.model)?
+        {
+            options.context = options.context.min(limit);
+        }
         let mmproj = options.values.remove("--mmproj").map(PathBuf::from);
         options.mmproj = crate::engine::projector_for(&options.model, mmproj.as_deref())?;
         let draft_model = match draft_model {

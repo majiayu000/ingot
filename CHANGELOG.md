@@ -24,6 +24,9 @@ First public release.
   gate/up/SwiGLU expert kernels.
 - Single-prefix cache across requests (`--prefix-cache`).
 - Per-kernel GPU timing via `INGOT_KERNEL_PROFILE`.
+- `ingot run` recommends the best model for the Mac from its Metal working set and
+  free disk, picks a context that fits, and marks models that will not run well.
+- When CONTEXT is omitted, it stops at the limit declared by the GGUF file.
 - `generate`, `tokenize`, `logits`, `trace`, `dequant` and `moe-layer`
   commands; library API (`ingot::engine::Engine`).
 

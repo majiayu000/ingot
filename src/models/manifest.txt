@@ -7,16 +7,23 @@
 #                  (Qwen excludes the row-read per_layer_token_embd table and the
 #                  blk.48 MTP tensors; drafts use the file size)
 #   draft          optional draft model name for --draft-model
+#   memory         CONTEXT:GIB engine memory measured for chat at each context
+#                  (Qwen3.8 and GLM: enough to keep every expert resident)
+#   stream_gib     smallest recorded budget that streams experts from SSD
 #   file           REPO REVISION PATH SIZE SHA256 (Hugging Face metadata)
 #
 # Revisions are pinned to the files validated with this engine. Later ggml-org
 # revisions changed the GLM primary shard and both MTP files.
+#
+# Main models are listed best first; `ingot run` recommends the first that fits.
 
 [qwen3.8-iq2_xs]
 kind = main
 summary = Qwen3.8-Flash-Next GSQ-RCO IQ2_XS (validated baseline)
 resident_bytes = 39234977792
 draft = qwen3.8-mtp-q8_0
+memory = 2048:41 4096:41 8192:41
+stream_gib = 8
 file = ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF ed59f92082b1e93c0e96d60a8b11aab089b52f09 IQ2_XS/Qwen3.8-Flash-Next-GSQ-RCO-IQ2_XS-00001-of-00002.gguf 39225954592 92cee27ae5bbadcd732416a0f7a7f0acc092399dbbe8f5a5efa707c2ec0a49d7
 file = ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF ed59f92082b1e93c0e96d60a8b11aab089b52f09 IQ2_XS/Qwen3.8-Flash-Next-GSQ-RCO-IQ2_XS-00002-of-00002.gguf 28800138432 316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113
 
@@ -25,6 +32,8 @@ kind = main
 summary = Qwen3.8-Flash-Next GSQ-RCO IQ3_XXS (quality evaluation pending)
 resident_bytes = 47048654848
 draft = qwen3.8-mtp-q8_0
+memory = 2048:48 4096:48 8192:48
+stream_gib = 8
 file = ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF ed59f92082b1e93c0e96d60a8b11aab089b52f09 IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00001-of-00002.gguf 47039860096 219ea929900dfa9ef091f3aa473fdba6874b65fcb36526d7d851ac9e95856d15
 file = ISTA-DASLab/Qwen3.8-Flash-Next-GSQ-RCO-GGUF ed59f92082b1e93c0e96d60a8b11aab089b52f09 IQ3_XXS/Qwen3.8-Flash-Next-GSQ-RCO-IQ3_XXS-00002-of-00002.gguf 28800138432 316b46f3a2dbd68c900f43136ab9449f9dcc3725dfd8c794847c204bc161e113
 
@@ -39,6 +48,8 @@ kind = main
 summary = GLM-5.3-Flash Q2_K_S
 resident_bytes = 110040498176
 draft = glm5.3-mtp-q8_0
+memory = 2048:107 4096:107 8192:107
+stream_gib = 11
 file = ggml-org/GLM-5.3-Flash-GGUF c259a9f17fe28ec50fecb0aa9f56971a0ae6eeaa GLM-5.3-Flash-Q2_K_S-00001-of-00002.gguf 9430240 f334b5b84890a5c2ff7081c99ebe31aa7815250936bc5d96d19e31eab04da831
 file = ggml-org/GLM-5.3-Flash-GGUF c259a9f17fe28ec50fecb0aa9f56971a0ae6eeaa GLM-5.3-Flash-Q2_K_S-00002-of-00002.gguf 110017922752 61ed849acb67dc7832eda82e9fad0f0257edcd20ced1fc7640e5e329ed6951b4
 
@@ -49,44 +60,51 @@ resident_bytes = 9284197440
 file = ggml-org/GLM-5.3-Flash-GGUF c259a9f17fe28ec50fecb0aa9f56971a0ae6eeaa mtp-GLM-5.3-Flash-Q8_0.gguf 9284197440 17a89535ce31a2e6aebbf50eb44ba850ec0e8263805d97004c85ac3ab06c636f
 
 # Generic architectures (all weights resident; no MTP draft).
-[qwen3-8b-q4_k_m]
-kind = main
-summary = Qwen3-8B Q4_K_M (qwen3)
-resident_bytes = 5027783488
-file = Qwen/Qwen3-8B-GGUF 7c41481f57cb95916b40956ab2f0b139b296d974 Qwen3-8B-Q4_K_M.gguf 5027783488 d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785
-
 [qwen3-30b-a3b-q4_k_m]
 kind = main
 summary = Qwen3-30B-A3B Q4_K_M (qwen3moe)
 resident_bytes = 18556685824
+memory = 2048:18.2 4096:18.5 8192:19.3
 file = Qwen/Qwen3-30B-A3B-GGUF e4d4bafdfb96a411a163846265362aceb0b9c63a Qwen3-30B-A3B-Q4_K_M.gguf 18556685824 0d003f6662faee786ed5da3e31b29c978de5ae5d275c8794c606a7f3c01aa8f5
+
+[gemma4-12b-it-qat-q4_0]
+kind = main
+summary = Gemma 4 12B IT QAT Q4_0 (gemma4)
+resident_bytes = 6975879296
+memory = 2048:8.2 4096:9.6 8192:12.3
+file = google/gemma-4-12B-it-qat-q4_0-gguf ef7b15515d7ed7f34305a08edb5717e7989d6dc9 gemma-4-12b-it-qat-q4_0.gguf 6975879296 93567e57a8fe10b23569b9d9ec38cd005deedf71e29477c421a4b83f418a538b
+
+[qwen3-8b-q4_k_m]
+kind = main
+summary = Qwen3-8B Q4_K_M (qwen3)
+resident_bytes = 5027783488
+memory = 2048:5.8 4096:6.4 8192:7.5
+file = Qwen/Qwen3-8B-GGUF 7c41481f57cb95916b40956ab2f0b139b296d974 Qwen3-8B-Q4_K_M.gguf 5027783488 d98cdcbd03e17ce47681435b5150e34c1417f50b5c0019dd560e4882c5745785
+
+[phi4-q4_0]
+kind = main
+summary = Phi-4 14B Q4_0 (phi3)
+resident_bytes = 8383418560
+memory = 2048:9.3 4096:10.1 8192:11.6
+file = microsoft/phi-4-gguf 6edc2ef6664b739a8e11e62f2672ff6afe0c15ac phi-4-Q4_0.gguf 8383418560 367a3576b66530fac1cee6c3f47b52e7bbfb003de6cc18e2e2c9a2cc2ad89fe6
 
 [llama3.1-8b-instruct-q4_0]
 kind = main
 summary = Llama 3.1 8B Instruct Q4_0 (llama)
 resident_bytes = 6036116480
+memory = 2048:6.7 4096:7.2 8192:8.2
 file = ggml-org/Meta-Llama-3.1-8B-Instruct-Q4_0-GGUF 0aba27dd2f1c7f4941a94a5c59d80e0a256f9ff8 meta-llama-3.1-8b-instruct-q4_0.gguf 6036116480 b4778681efbd6898fe1965e74f810b3b7dfdf6afab01df9c88c1b0e6e9ca122d
 
 [gemma3-4b-it-qat-q4_0]
 kind = main
 summary = Gemma 3 4B IT QAT Q4_0 (gemma3)
 resident_bytes = 2526080992
+memory = 2048:3.4 4096:3.9 8192:5.0
 file = ggml-org/gemma-3-4b-it-qat-GGUF bbcac0d065076c47042838c0675c602411b0dd4c gemma-3-4b-it-qat-Q4_0.gguf 2526080992 ee91c3e7a4ab95d8c95672f9fcb58bf236b257e9f217966bcf53a5a6df4ab49a
-
-[gemma4-12b-it-qat-q4_0]
-kind = main
-summary = Gemma 4 12B IT QAT Q4_0 (gemma4)
-resident_bytes = 6975879296
-file = google/gemma-4-12B-it-qat-q4_0-gguf ef7b15515d7ed7f34305a08edb5717e7989d6dc9 gemma-4-12b-it-qat-q4_0.gguf 6975879296 93567e57a8fe10b23569b9d9ec38cd005deedf71e29477c421a4b83f418a538b
 
 [phi3-mini-4k-instruct-q4]
 kind = main
 summary = Phi-3 mini 4K Instruct Q4 (phi3)
 resident_bytes = 2393231072
+memory = 2048:4.2 4096:5.7
 file = microsoft/Phi-3-mini-4k-instruct-gguf a64113399c2f6b8ad3e11c394733a2ddadaa7f33 Phi-3-mini-4k-instruct-q4.gguf 2393231072 8a83c7fb9049a9b2e92266fa7ad04933bb53aa1e85136b7b30f1b8000ff2edef
-
-[phi4-q4_0]
-kind = main
-summary = Phi-4 14B Q4_0 (phi3)
-resident_bytes = 8383418560
-file = microsoft/phi-4-gguf 6edc2ef6664b739a8e11e62f2672ff6afe0c15ac phi-4-Q4_0.gguf 8383418560 367a3576b66530fac1cee6c3f47b52e7bbfb003de6cc18e2e2c9a2cc2ad89fe6

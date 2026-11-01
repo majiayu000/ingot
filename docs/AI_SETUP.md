@@ -75,16 +75,11 @@ ingot models
 ### Step 3: choose a model with the user
 
 Read `ingot models`. It prints the "Metal working set" (GPU memory available
-on this Mac) and, per model, the download size and the recommended memory
-budget. Recommend the largest model whose recommended budget is comfortably
-below the working set and whose download fits on disk:
-
-| Mac RAM | Suggested model | Download |
-| --- | --- | ---: |
-| 16 GB | `qwen3-8b-q4_k_m` | 4.7 GiB |
-| 32 GB | `qwen3-30b-a3b-q4_k_m` | 17.3 GiB |
-| 64 GB | `qwen3.8-iq2_xs` | 63.4 GiB |
-| 96 GB+ | `qwen3.8-iq3_xxs` | 70.6 GiB |
+on this Mac) and, per model, the download size and what it needs here. Main
+models are listed best first. Recommend the first one that does not say "too
+large for this Mac" or "SSD expert streaming" and whose download fits on disk.
+The `ingot` menu makes the same choice, so a user at a terminal can just press
+Enter.
 
 Confirm the choice and the download size with the user, then download:
 

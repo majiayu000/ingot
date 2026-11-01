@@ -44,19 +44,28 @@ on your Mac.
 
 ## Which model?
 
-| Your Mac | Model | Download |
-| --- | --- | ---: |
-| 16 GB | `qwen3-8b-q4_k_m` | 4.7 GiB |
-| 32 GB | `qwen3-30b-a3b-q4_k_m` | 17.3 GiB |
-| 64 GB or more | `qwen3.8-iq2_xs` | 63.4 GiB |
+Run `ingot` and press Enter. It checks this Mac's memory and free disk,
+recommends the best model that fits, and picks a context length for it. A model
+you already downloaded comes first if it fits.
+
+Examples, with the memory each needs at a context of 8192 tokens:
+
+| Model | Download | Memory |
+| --- | ---: | ---: |
+| `gemma3-4b-it-qat-q4_0` | 2.4 GiB | 5.0 GiB |
+| `qwen3-8b-q4_k_m` | 4.7 GiB | 7.5 GiB |
+| `qwen3-30b-a3b-q4_k_m` | 17.3 GiB | 19.3 GiB |
+| `qwen3.8-iq2_xs` | 63.4 GiB | 41 GiB |
+
+Memory here means what the GPU can use, which is less than your Mac's RAM. The
+first screen of `ingot` shows the number for your Mac.
 
 ```sh
-ingot run qwen3-8b-q4_k_m   # download if needed, then chat
-ingot models                # everything available, and what fits your Mac
+ingot models                # everything available, and what fits
+ingot run qwen3-8b-q4_k_m   # skip the menu
 ```
 
-The list also has Gemma, Phi, Llama 3.1 and GLM-5.3. To run another supported
-GGUF, use `ingot pull hf:OWNER/REPO/FILE.gguf`.
+To run another supported GGUF, use `ingot pull hf:OWNER/REPO/FILE.gguf`.
 
 ## Connect your apps
 

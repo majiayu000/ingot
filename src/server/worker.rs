@@ -106,9 +106,15 @@ impl Args {
             }
             return Ok(Source::Fixed(Options::parse(&self.model, &[], 0, USAGE)?));
         }
-        let context: usize = self.get("--context")?.unwrap_or(DEFAULT_CONTEXT);
-        let mut tail = vec![OsString::from(context.to_string())];
-        if let Some(gib) = self.get::<usize>("--memory-gib")? {
+        let context: Option<usize> = self.get("--context")?;
+        let gib: Option<usize> = self.get("--memory-gib")?;
+        let mut tail = Vec::new();
+        if context.is_some() || gib.is_some() {
+            tail.push(OsString::from(
+                context.unwrap_or(DEFAULT_CONTEXT).to_string(),
+            ));
+        }
+        if let Some(gib) = gib {
             tail.push(gib.to_string().into());
         }
         tail.extend(self.model.iter().cloned());

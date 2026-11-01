@@ -49,11 +49,29 @@ pub struct Model {
     pub summary: String,
     pub resident_bytes: u64,
     pub draft: Option<String>,
+    /// (context, GiB of engine memory) measured for chat.
+    pub memory: Vec<(usize, f64)>,
+    /// Smallest recorded budget that streams experts from SSD.
+    pub stream_gib: Option<f64>,
     pub files: Vec<ModelFile>,
 }
 impl Model {
     pub fn download_bytes(&self) -> u64 {
         self.files.iter().map(|f| f.size).sum()
+    }
+
+    /// Longest chat context that fits `cap_gib` of engine memory.
+    pub fn fitting_context(&self, cap_gib: u64) -> Option<usize> {
+        self.memory
+            .iter()
+            .filter(|(_, gib)| *gib <= cap_gib as f64)
+            .map(|(context, _)| *context)
+            .max()
+    }
+
+    /// True when the engine can stream this model's experts within `cap_gib`.
+    pub fn streams_in(&self, cap_gib: u64) -> bool {
+        self.stream_gib.is_some_and(|gib| gib <= cap_gib as f64)
     }
 }
 
@@ -88,6 +106,8 @@ impl Manifest {
                     summary: String::new(),
                     resident_bytes: 0,
                     draft: None,
+                    memory: Vec::new(),
+                    stream_gib: None,
                     files: Vec::new(),
                 });
                 keys.clear();
@@ -116,6 +136,19 @@ impl Manifest {
                     model.resident_bytes = value.parse().map_err(|_| error("resident_bytes"))?
                 }
                 "draft" => model.draft = Some(value.into()),
+                "memory" => {
+                    model.memory = value
+                        .split_whitespace()
+                        .map(|entry| {
+                            let (context, gib) = entry.split_once(':')?;
+                            Some((context.parse().ok()?, gib.parse().ok()?))
+                        })
+                        .collect::<Option<_>>()
+                        .ok_or_else(|| error("memory needs CONTEXT:GIB entries"))?
+                }
+                "stream_gib" => {
+                    model.stream_gib = Some(value.parse().map_err(|_| error("stream_gib"))?)
+                }
                 "file" => {
                     let fields: Vec<_> = value.split_whitespace().collect();
                     let [repo, revision, path, size, sha256] = fields[..] else {
@@ -331,10 +364,41 @@ pub struct Budget {
     pub resident: bool,
 }
 
+/// Engine memory available when MEMORY_GIB is omitted.
+pub fn budget_cap_gib(working_set: u64) -> u64 {
+    working_set.saturating_sub(HEADROOM) / GIB
+}
+
+/// Free bytes on the disk that holds `path`, which need not exist yet.
+pub fn free_bytes(path: &Path) -> Result<u64> {
+    use std::os::unix::ffi::OsStrExt;
+    let dir = path
+        .ancestors()
+        .find(|p| p.exists())
+        .unwrap_or(Path::new("."));
+    let c_path = std::ffi::CString::new(dir.as_os_str().as_bytes())
+        .map_err(|_| invalid("path contains a NUL byte"))?;
+    let mut stat = std::mem::MaybeUninit::<libc::statvfs>::uninit();
+    // SAFETY: c_path is NUL-terminated and stat is valid for writes.
+    if unsafe { libc::statvfs(c_path.as_ptr(), stat.as_mut_ptr()) } != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    // SAFETY: statvfs returned 0, so it initialized stat.
+    let stat = unsafe { stat.assume_init() };
+    Ok(stat.f_bavail as u64 * stat.f_frsize)
+}
+
+/// The training context declared by a GGUF file.
+pub fn context_limit(model: &Path) -> Result<Option<usize>> {
+    let g = Gguf::open(model)?;
+    Ok(g.optional_string("general.architecture")
+        .and_then(|a| g.optional_integer(&format!("{a}.context_length"))))
+}
+
 pub fn recommend(resident_bytes: u64, working_set: u64) -> Budget {
     let full = (resident_bytes + HEADROOM).div_ceil(GIB);
     // Leave the same headroom for the OS and file cache below the Metal limit.
-    let cap = working_set.saturating_sub(HEADROOM) / GIB;
+    let cap = budget_cap_gib(working_set);
     Budget {
         gib: full.min(cap) as usize,
         resident: full <= cap,
@@ -361,7 +425,7 @@ pub fn auto_budget_gib(model: &Path, draft: Option<&Path>) -> Result<usize> {
     }
     let (device, working_set) = working_set()?;
     let budget = recommend(resident, working_set);
-    let cap = working_set.saturating_sub(HEADROOM) / GIB;
+    let cap = budget_cap_gib(working_set);
     eprintln!(
         "memory budget: up to {cap} GiB ({device} working set {} minus headroom); weights {}{}",
         gib(working_set),
@@ -495,7 +559,20 @@ pub fn list(manifest: &Manifest, root: &Path, device: &str, working_set: u64) ->
             format!("partial {}/{}", present.len(), m.files.len())
         };
         let (kind, budget) = match m.kind {
-            Kind::Main => ("main", recommend(m.resident_bytes, working_set).to_string()),
+            Kind::Main => {
+                let cap = budget_cap_gib(working_set);
+                let budget = match (m.fitting_context(cap), m.stream_gib) {
+                    (Some(context), None) => {
+                        let (_, need) = m.memory.iter().find(|(c, _)| *c == context).unwrap();
+                        format!("{need:.1} GiB (context {context})")
+                    }
+                    (None, _) if !m.memory.is_empty() && !m.streams_in(cap) => {
+                        "too large for this Mac".to_string()
+                    }
+                    _ => recommend(m.resident_bytes, working_set).to_string(),
+                };
+                ("main", budget)
+            }
             Kind::Draft => (
                 "draft",
                 format!("+{}, used by its main model", gib(m.resident_bytes)),

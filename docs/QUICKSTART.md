@@ -53,7 +53,7 @@ ingot
 ```
 
 1. A numbered list of models appears with their download sizes. Type a number
-   or name and press Enter (Enter alone picks the default).
+   or name and press Enter (Enter alone picks the one recommended for your Mac).
 2. Ingot shows how much it will download and where. Type `y` and press Enter.
    Nothing is downloaded until you say yes. If the download stops, run the
    same command again: it continues where it left off and checks every file.
@@ -73,25 +73,29 @@ name the model: `ingot run qwen3-8b-q4_k_m`.
 
 ## Which model should I pick?
 
-Run `ingot models`. It lists every model, its download size, whether you
-already have it, and the memory budget it recommends on **your** Mac (the
-"Metal working set" line shows how much memory your Mac lets the GPU use,
-usually about two thirds to three quarters of its RAM).
+Usually you do not need to choose: run `ingot` and press Enter. Ingot checks
+this Mac's memory and free disk, recommends the best model that fits and picks
+a context length for it. A downloaded model that fits comes first.
 
-Sizes from `ingot models`:
+To compare for yourself, run `ingot models`. It lists every model, its download
+size, whether you already have it, and what it needs on **your** Mac. The
+"Metal working set" line shows how much memory your Mac lets the GPU use.
+Ingot keeps 4 GiB of that free, so subtract 4 GiB to get the memory for models.
 
-| Your Mac's memory | Start with | Download | Memory it wants |
+| Model | Good for | Download | Memory at context 8192 |
 | --- | --- | ---: | ---: |
-| 16 GB | `qwen3-8b-q4_k_m` (Qwen3 8B) or `llama3.1-8b-instruct-q4_0` (Llama 3.1 8B) | 4.7 / 5.6 GiB | 9 / 10 GiB |
-| 32 GB | `qwen3-30b-a3b-q4_k_m` (Qwen3 30B-A3B, fast and smarter) | 17.3 GiB | 22 GiB |
-| 64 GB | `qwen3.8-iq2_xs` (Qwen3.8-Flash-Next, the main tested model) | 63.4 GiB | 41 GiB |
-| 96 GB or more | `qwen3.8-iq3_xxs` (higher-quality Qwen3.8) | 70.6 GiB | 48 GiB |
-| 96 GB or more, lots of disk | `glm5.3-q2_k_s` (GLM-5.3-Flash, reads part of the model from disk while it runs, slower) | 102.5 GiB | 73 GiB |
+| `gemma3-4b-it-qat-q4_0` | Small Macs | 2.4 GiB | 5.0 GiB |
+| `qwen3-8b-q4_k_m` | Everyday use | 4.7 GiB | 7.5 GiB |
+| `gemma4-12b-it-qat-q4_0` | Better answers, slower on long prompts | 6.5 GiB | 12.3 GiB |
+| `qwen3-30b-a3b-q4_k_m` | Fast and smarter | 17.3 GiB | 19.3 GiB |
+| `qwen3.8-iq2_xs` | The main tested model | 63.4 GiB | 41 GiB |
+| `qwen3.8-iq3_xxs` | Higher-precision Qwen3.8 (quality not yet evaluated) | 70.6 GiB | 48 GiB |
+| `glm5.3-q2_k_s` | GLM-5.3-Flash, reads part of the model from disk, slower | 102.5 GiB | 107 GiB to stay in memory |
 
 Rules of thumb:
 
-- Pick a model whose "memory it wants" is below your Mac's Metal working set,
-  with room to spare for your other apps.
+- Models also run with a shorter context, which needs less memory. `ingot run`
+  chooses this for you; the context appears when the chat starts.
 - The big Qwen3.8 and GLM models can still run with less memory: Ingot keeps
   part of the model on the SSD and reads it as needed. That works, but it is
   much slower. You do not need to configure anything; memory is chosen
@@ -106,8 +110,9 @@ set `INGOT_MODELS` every time you run Ingot, for example
 `INGOT_MODELS=/Volumes/SSD/models ingot`.
 
 You can also download a GGUF file from Hugging Face by name:
-`ingot pull hf:OWNER/REPO/FILE.gguf`. Ingot runs Llama, Qwen2, Qwen3 and
-Qwen3-MoE files this way; other model families are rejected with an error.
+`ingot pull hf:OWNER/REPO/FILE.gguf`. Ingot runs Llama, Qwen2, Qwen3, Qwen3-MoE,
+Gemma 3, Gemma 4 and Phi-3 family files this way; other model families are
+rejected with an error.
 
 ## Use it from your browser
 

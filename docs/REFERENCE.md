@@ -32,9 +32,12 @@ Then start with **one command**:
 ingot run
 ```
 
-1. Choose a model by number or name, or press Enter for the default. Already
-   downloaded models are preferred; otherwise the first option is the validated
-   Qwen IQ2_XS baseline. The menu shows download sizes and model descriptions.
+1. Choose a model by number or name, or press Enter for the recommended one.
+   Ingot reads the Metal working set and free disk space, then prefers a
+   downloaded model that fits in memory, then the first listed model that does,
+   using the longest context that fits (up to 8192 tokens). Models that would
+   stream from SSD, or do not fit, are marked. The menu shows download sizes
+   and model descriptions.
 2. Read the size and destination, then type `y` to download. Pressing Enter or
    choosing `q` in the model menu cancels. Downloads resume when retried and are
    SHA-256 verified. Optional draft weights are not downloaded by this command.

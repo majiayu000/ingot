@@ -40,19 +40,26 @@ ingot
 
 ## 选哪个模型
 
-| 你的 Mac | 模型 | 下载大小 |
-| --- | --- | ---: |
-| 16 GB | `qwen3-8b-q4_k_m` | 4.7 GiB |
-| 32 GB | `qwen3-30b-a3b-q4_k_m` | 17.3 GiB |
-| 64 GB 及以上 | `qwen3.8-iq2_xs` | 63.4 GiB |
+运行 `ingot` 后直接按回车。它会检查这台 Mac 的内存和可用磁盘空间，推荐放得下的最佳模型，
+并选好上下文长度。已下载且放得下的模型会优先使用。
+
+举例，下面是上下文为 8192 token 时各模型需要的内存：
+
+| 模型 | 下载大小 | 内存 |
+| --- | ---: | ---: |
+| `gemma3-4b-it-qat-q4_0` | 2.4 GiB | 5.0 GiB |
+| `qwen3-8b-q4_k_m` | 4.7 GiB | 7.5 GiB |
+| `qwen3-30b-a3b-q4_k_m` | 17.3 GiB | 19.3 GiB |
+| `qwen3.8-iq2_xs` | 63.4 GiB | 41 GiB |
+
+这里的内存指 GPU 可用内存，比 Mac 的总内存少。`ingot` 启动时的第一屏会显示你这台 Mac 的数值。
 
 ```sh
-ingot run qwen3-8b-q4_k_m   # 需要时下载，然后开始对话
-ingot models                # 查看全部模型，以及哪些适合你的 Mac
+ingot models                # 查看全部模型，以及哪些放得下
+ingot run qwen3-8b-q4_k_m   # 跳过菜单
 ```
 
-列表里还有 Gemma、Phi、Llama 3.1 和 GLM-5.3。其他受支持的 GGUF 可以用
-`ingot pull hf:OWNER/REPO/FILE.gguf` 下载。
+其他受支持的 GGUF 可以用 `ingot pull hf:OWNER/REPO/FILE.gguf` 下载。
 
 ## 连接应用
 
