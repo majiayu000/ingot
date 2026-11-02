@@ -22,7 +22,15 @@ Downloads range from 2 to 103 GiB. You will see the size and confirm first.
 Downloaded models are reused. Memory settings are chosen automatically.
 
 More commands:
-  ingot models                           list models, local status and memory budgets
+  ingot list                             local models
+  ingot ps                               the loaded model
+  ingot show MODEL                       details of a model
+  ingot stop MODEL                       unload a model now
+  ingot rm MODEL                         delete a model
+  ingot cp SOURCE DESTINATION            save a model under a new name
+  ingot create NAME -f MODELFILE         make a custom model
+  ingot launch TOOL                      start claude, codex or opencode on a local model
+  ingot models                           every known model, local status and memory budgets
   ingot pull NAME|hf:OWNER/REPO/FILE.gguf download or verify a model without chatting
   ingot chat MODEL [options]             chat with an existing model; advanced settings
   ingot serve MODEL [options]            OpenAI-compatible API at 127.0.0.1:8080
@@ -94,6 +102,9 @@ fn run() -> Result<()> {
         Some("service") => ingot::service::main(&args[1..]),
         Some("chat") => ingot::chat::main(&args[1..]),
         Some("models" | "pull") => ingot::models::cli(&args),
+        Some(command @ ("list" | "ps" | "show" | "stop" | "rm" | "cp" | "create" | "launch")) => {
+            ingot::commands::main(command, &args[1..])
+        }
         Some("generate") => generate(&args[1..]),
         Some("dev") => dev(&args[1..]),
         Some(other) => Err(invalid(format!(

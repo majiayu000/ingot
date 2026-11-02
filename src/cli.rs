@@ -145,6 +145,7 @@ impl Options {
             top_p: self.get("--top-p")?.unwrap_or(d.top_p),
             top_k: self.get("--top-k")?.unwrap_or(d.top_k),
             seed: 0,
+            ..d
         };
         sampling.validate()?;
         Ok((sampling, self.get("--seed")?))

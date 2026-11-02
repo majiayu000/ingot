@@ -1,4 +1,12 @@
+use super::http::HttpRequest;
 use super::*;
+use std::io::Read;
+fn job_from(queue: &Receiver<Work>) -> Job {
+    match queue.recv_timeout(Duration::from_secs(5)).unwrap() {
+        Work::Run(job) => job,
+        _ => panic!("expected a job"),
+    }
+}
 fn sockets() -> (TcpStream, TcpStream) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let client = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
@@ -22,7 +30,7 @@ fn response_from_worker(streaming: bool, started: bool) -> String {
     let shared = Arc::new(Shared::new(jobs, Served::Fixed("test".into())));
     let connection = std::thread::spawn(move || handle(server, shared));
     completion_request(&mut client, streaming);
-    let job = queue.recv_timeout(Duration::from_secs(5)).unwrap();
+    let job = job_from(&queue);
     if started {
         job.events
             .send(Event::Started { prompt_tokens: 0 })
@@ -68,13 +76,13 @@ fn full_job_queue_rejects_immediately_and_recovers() {
         let (events, _) = mpsc::sync_channel(MAX_EVENTS);
         shared
             .jobs
-            .try_send(Job {
+            .try_send(Work::Run(Job {
                 model: "test".into(),
                 chat: false,
                 request: parse_request(br#"{"prompt":"queued"}"#, false, "test").unwrap(),
                 cancel: Cancellation::default(),
                 events,
-            })
+            }))
             .ok()
             .unwrap();
     }
@@ -94,7 +102,7 @@ fn full_job_queue_rejects_immediately_and_recovers() {
     let (mut client, server) = sockets();
     let connection = std::thread::spawn(move || handle(server, shared));
     completion_request(&mut client, false);
-    let job = queue.recv_timeout(Duration::from_secs(5)).unwrap();
+    let job = job_from(&queue);
     job.events
         .send(Event::Started { prompt_tokens: 0 })
         .unwrap();
@@ -160,7 +168,7 @@ fn disconnect_releases_a_worker_sending_to_a_slow_stream() {
     let shared = Arc::new(Shared::new(jobs, Served::Fixed("test".into())));
     let connection = std::thread::spawn(move || handle(server, shared));
     completion_request(&mut client, true);
-    let job = queue.recv_timeout(Duration::from_secs(5)).unwrap();
+    let job = job_from(&queue);
     let cancel = job.cancel.clone();
     let (done, finished) = mpsc::channel();
     let worker = std::thread::spawn(move || {
@@ -200,9 +208,9 @@ fn root_serves_the_offline_chat_page() {
     let mut response = String::new();
     client.read_to_string(&mut response).unwrap();
     assert!(response.starts_with("HTTP/1.1 200 OK\r\nContent-Type: text/html"));
-    assert!(response.ends_with(WEB_PAGE));
+    assert!(response.ends_with(WEB[0].2));
     // Only same-origin requests: the page must work offline.
-    assert!(!WEB_PAGE.contains("http://") && !WEB_PAGE.contains("https://"));
+    assert!(!WEB[0].2.contains("http://") && !WEB[0].2.contains("https://"));
 }
 #[test]
 fn file_id_strips_shard_suffix() {
@@ -306,4 +314,41 @@ fn api_key_guards_api_routes_but_not_the_page() {
     );
     let body: Value = serde_json::from_str(status.split_once("\r\n\r\n").unwrap().1).unwrap();
     assert_eq!(body["queued"], 0);
+}
+
+fn request_for(head: &str) -> HttpRequest {
+    let (mut client, mut server) = sockets();
+    write!(client, "{head}\r\n\r\n").unwrap();
+    read_request(&mut server).ok().unwrap()
+}
+#[test]
+fn other_sites_cannot_change_a_local_server() {
+    let local = "Host: 127.0.0.1:8080";
+    let post = |extra: &str| {
+        request_for(&format!(
+            "POST /api/pull HTTP/1.1\r\n{extra}\r\nContent-Length: 0"
+        ))
+    };
+    assert!(!post(local).foreign(false));
+    assert!(!post(&format!("{local}\r\nOrigin: http://127.0.0.1:8080")).foreign(false));
+    assert!(post(&format!("{local}\r\nOrigin: https://evil.example")).foreign(false));
+    // DNS rebinding: the name matches itself but is not this machine.
+    let rebound = "Host: evil.example:8080\r\nOrigin: http://evil.example:8080";
+    assert!(post(rebound).foreign(false));
+    assert!(!post(rebound).foreign(true));
+    let get = "GET /api/tags HTTP/1.1\r\nHost: x\r\nOrigin: http://evil.example";
+    assert!(!request_for(get).foreign(false));
+}
+#[test]
+fn ollama_clients_can_check_the_server_is_up() {
+    let (mut client, server) = sockets();
+    let (jobs, _queue) = mpsc::sync_channel(1);
+    let shared = Arc::new(Shared::new(jobs, Served::Fixed("test".into())));
+    let connection = std::thread::spawn(move || handle(server, shared));
+    write!(client, "HEAD / HTTP/1.1\r\nHost: x\r\n\r\n").unwrap();
+    let mut response = String::new();
+    client.read_to_string(&mut response).unwrap();
+    connection.join().unwrap();
+    assert!(response.starts_with("HTTP/1.1 200"), "{response}");
+    assert!(response.ends_with("\r\n\r\n"), "{response}");
 }

@@ -47,7 +47,7 @@
       : s.queued + " waiting";
     const last = s.recent[0];
     $("cards").replaceChildren(
-      card("Loaded model", s.model || "none", "thinking default: " + s.thinking_default),
+      card("Loaded model", s.model ? titles[s.model] || s.model : "None", s.context ? "context " + s.context.toLocaleString() : "loads with the first request"),
       card("Engine", state, stateSub),
       card("Metal memory", gib(m.metal_allocated_bytes),
         "peak " + gib(m.metal_peak_bytes) + " of " + gib(m.recommended_working_set_bytes) + " working set",
@@ -101,21 +101,14 @@
     } catch (e) {
       $("cards").replaceChildren(card("Monitor", "Server unreachable", e.message || String(e)));
     }
-    if (document.body.classList.contains("monitoring") && !document.hidden) timer = setTimeout(refresh, REFRESH_MS);
+    if (document.body.dataset.view === "monitor" && !document.hidden) timer = setTimeout(refresh, REFRESH_MS);
   }
 
-  function select(monitoring) {
-    document.body.classList.toggle("monitoring", monitoring);
-    $("tab-chat").setAttribute("aria-pressed", String(!monitoring));
-    $("tab-monitor").setAttribute("aria-pressed", String(monitoring));
-    save("tab", monitoring ? "monitor" : "chat");
-    if (monitoring) refresh();
+  window.addEventListener("ingot-view", (e) => {
+    if (e.detail === "monitor") refresh();
     else clearTimeout(timer);
-  }
-  $("tab-chat").onclick = () => select(false);
-  $("tab-monitor").onclick = () => select(true);
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && document.body.classList.contains("monitoring")) refresh();
   });
-  select(load("tab", "chat") === "monitor");
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && document.body.dataset.view === "monitor") refresh();
+  });
 })();

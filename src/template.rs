@@ -35,6 +35,32 @@ fn message_value(m: &Message) -> Value {
     v
 }
 
+/// Some templates, such as Phi-3's, have no system role and skip those
+/// messages without a word. Their text goes into the first user message.
+fn merge_system(messages: &mut Vec<Value>) {
+    let mut system = Vec::new();
+    messages.retain(|m| {
+        let found = m["role"] == "system";
+        if found {
+            system.push(m["content"].as_str().unwrap_or_default().to_owned());
+        }
+        !found
+    });
+    if system.is_empty() {
+        return;
+    }
+    let text = system.join("\n\n");
+    match messages.iter_mut().find(|m| m["role"] == "user") {
+        Some(user) => {
+            user["content"] = json!(format!(
+                "{text}\n\n{}",
+                user["content"].as_str().unwrap_or("")
+            ));
+        }
+        None => messages.insert(0, json!({"role": "user", "content": text})),
+    }
+}
+
 impl ChatTemplate {
     pub fn new(source: String, bos: String, eos: String) -> Self {
         Self { source, bos, eos }
@@ -83,7 +109,10 @@ impl ChatTemplate {
         );
         env.add_template("chat", &self.source)
             .map_err(|e| invalid(format!("chat template: {e}")))?;
-        let messages: Vec<Value> = messages.iter().map(message_value).collect();
+        let mut messages: Vec<Value> = messages.iter().map(message_value).collect();
+        if !self.source.contains("system") {
+            merge_system(&mut messages);
+        }
         let level = thinking.unwrap_or(Thinking::Off);
         let mut context = json!({
             "messages": messages,
@@ -106,6 +135,17 @@ impl ChatTemplate {
 mod tests {
     use super::*;
     use crate::tools::ToolCall;
+    #[test]
+    fn templates_without_a_system_role_keep_its_text() {
+        let source = "{% for m in messages %}{% if m.role == 'user' %}<u>{{ m.content }}{% endif %}{% endfor %}";
+        let template = ChatTemplate::new(source.into(), String::new(), String::new());
+        let messages = [
+            Message::new(Role::System, "Be brief."),
+            Message::new(Role::User, "Hi"),
+        ];
+        let text = template.render(&messages, &[], None).unwrap();
+        assert_eq!(text, "<u>Be brief.\n\nHi");
+    }
     // A ChatML template in the style of Qwen2.5/Qwen3 (abridged), exercising
     // tools, tool calls, tool results and string methods.
     const CHATML: &str = r##"{%- if tools %}{{- '<|im_start|>system\n' }}{%- if messages[0].role == 'system' %}{{- messages[0].content + '\n\n' }}{%- endif %}{{- "# Tools\n\n<tools>" }}{%- for tool in tools %}{{- "\n" }}{{- tool | tojson }}{%- endfor %}{{- "\n</tools><|im_end|>\n" }}{%- elif messages[0].role == 'system' %}{{- '<|im_start|>system\n' + messages[0].content + '<|im_end|>\n' }}{%- endif %}

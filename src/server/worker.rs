@@ -3,9 +3,10 @@
 //! `--keep-alive` without requests.
 use super::catalog::lock;
 use super::monitor::{self, Monitor};
-use super::{Event, Job, USAGE, run_job};
+use super::{Event, Job, USAGE, Work, run_job};
 use crate::cli::{DEFAULT_CONTEXT, Options};
 use crate::engine::{Engine, Session};
+use crate::models::{self, Manifest};
 use crate::openai::ApiError;
 use crate::session_pool::{self, Pool};
 use crate::{Result, invalid};
@@ -158,8 +159,19 @@ fn metal_bytes() -> f64 {
     monitor::metal().0 as f64 / (1u64 << 30) as f64
 }
 
+/// Longest measured context of a listed model that fits this Mac's memory.
+fn fitting_context(id: &str) -> Option<usize> {
+    let manifest = Manifest::builtin().ok()?;
+    let (_, working_set) = models::working_set().ok()?;
+    manifest
+        .get(id)
+        .ok()?
+        .fitting_context(models::budget_cap_gib(working_set))
+}
+
 struct Resident {
     id: String,
+    context: usize,
     engine: Engine,
     pool: Pool<Session>,
 }
@@ -168,6 +180,8 @@ pub(crate) struct Worker {
     source: Source,
     sessions: Option<usize>,
     keep_alive: Option<Duration>,
+    /// Idle time in force: the last request's `keep_alive`, else `keep_alive`.
+    idle: Option<Duration>,
     resident: Option<Resident>,
     /// Published resident id for request routing.
     loaded: Arc<Mutex<Option<String>>>,
@@ -185,14 +199,20 @@ impl Worker {
             source,
             sessions,
             keep_alive,
+            idle: keep_alive,
             resident: None,
             loaded,
             monitor,
         }
     }
-    /// Make `id` the resident model, unloading another one first.
-    pub(crate) fn ensure(&mut self, id: &str) -> Result<()> {
-        if self.resident.as_ref().is_some_and(|r| r.id == id) {
+    /// Make `id` the resident model, unloading another one first. A larger
+    /// `context` than the loaded one reloads it; a smaller one fits as it is.
+    pub(crate) fn ensure(&mut self, id: &str, context: Option<usize>) -> Result<()> {
+        if self
+            .resident
+            .as_ref()
+            .is_some_and(|r| r.id == id && context.is_none_or(|c| c <= r.context))
+        {
             return Ok(());
         }
         self.unload(&format!("switching to {id}"));
@@ -203,8 +223,20 @@ impl Worker {
             Source::Fixed(options) => options,
             Source::Local(tail) => {
                 let mut args = vec![OsString::from(id)];
-                args.extend(tail.iter().cloned());
-                parsed = Options::parse(&args, &[], 0, USAGE)?;
+                let given = tail
+                    .first()
+                    .and_then(|a| a.to_str())
+                    .and_then(|a| a.parse::<usize>().ok());
+                let rest = &tail[usize::from(given.is_some())..];
+                if let Some(context) = context.or(given).or_else(|| fitting_context(id)) {
+                    args.push(context.to_string().into());
+                }
+                args.extend(rest.iter().cloned());
+                let mut options = Options::parse(&args, &[], 0, USAGE)?;
+                if let Some(limit) = models::context_limit(&options.model)? {
+                    options.context = options.context.min(limit);
+                }
+                parsed = options;
                 &parsed
             }
         };
@@ -230,11 +262,13 @@ impl Worker {
         let pool = Pool::new(sessions).partial(engine.truncatable());
         self.resident = Some(Resident {
             id: id.to_owned(),
+            context: options.context,
             engine,
             pool,
         });
         *lock(&self.loaded) = Some(id.to_owned());
         self.monitor.sessions(sessions);
+        self.monitor.context(options.context);
         Ok(())
     }
     fn unload(&mut self, reason: &str) {
@@ -243,6 +277,7 @@ impl Worker {
         };
         *lock(&self.loaded) = None;
         self.monitor.sessions(0);
+        self.monitor.context(0);
         let (start, before) = (Instant::now(), metal_bytes());
         let id = resident.id.clone();
         objc2::rc::autoreleasepool(|_| drop(resident));
@@ -253,11 +288,11 @@ impl Worker {
         );
     }
     /// Run jobs in arrival order until every sender is gone.
-    pub(crate) fn run(mut self, queue: Receiver<Job>) {
+    pub(crate) fn run(mut self, queue: Receiver<Work>) {
         loop {
-            let job = match (self.keep_alive, &self.resident) {
+            let work = match (self.idle, &self.resident) {
                 (Some(idle), Some(_)) => match queue.recv_timeout(idle) {
-                    Ok(job) => job,
+                    Ok(work) => work,
                     Err(RecvTimeoutError::Timeout) => {
                         self.unload(&format!("idle for {}s", idle.as_secs()));
                         continue;
@@ -265,13 +300,35 @@ impl Worker {
                     Err(RecvTimeoutError::Disconnected) => return,
                 },
                 _ => match queue.recv() {
-                    Ok(job) => job,
+                    Ok(work) => work,
                     Err(_) => return,
                 },
             };
-            self.monitor.begin(&job.model);
-            self.run_one(job);
-            self.monitor.end();
+            match work {
+                Work::Run(job) => {
+                    self.monitor.begin(&job.model);
+                    self.run_one(job);
+                    self.monitor.end();
+                }
+                Work::Load {
+                    model,
+                    context,
+                    keep_alive,
+                    done,
+                } => {
+                    let result = objc2::rc::autoreleasepool(|_| self.ensure(&model, context));
+                    self.idle = keep_alive.unwrap_or(self.keep_alive);
+                    let result = result
+                        .map_err(|e| ApiError::new(500, format!("cannot load model {model}: {e}")));
+                    let _ = done.send(result);
+                }
+                Work::Unload { model, done } => {
+                    if self.resident.as_ref().is_some_and(|r| r.id == model) {
+                        self.unload("requested");
+                    }
+                    let _ = done.send(());
+                }
+            }
         }
     }
 }
@@ -281,7 +338,9 @@ impl Worker {
         if job.cancel.is_cancelled() {
             return self.monitor.outcome("cancelled");
         }
-        if let Err(e) = objc2::rc::autoreleasepool(|_| self.ensure(&job.model)) {
+        self.idle = job.request.keep_alive.unwrap_or(self.keep_alive);
+        let context = job.request.context;
+        if let Err(e) = objc2::rc::autoreleasepool(|_| self.ensure(&job.model, context)) {
             eprintln!("ingot serve: cannot load {}: {e}", job.model);
             let message = format!("cannot load model {}: {e}", job.model);
             let _ = job.events.send(Event::Error(ApiError::new(500, message)));

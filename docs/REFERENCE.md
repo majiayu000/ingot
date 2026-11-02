@@ -171,7 +171,8 @@ a terminal and kept as the turn's reasoning in history).
   Metal memory, the engine state and queue, kept sessions and the speeds of
   recent requests, refreshed every 3 seconds. When the server requires an API
   key the page asks for it once and keeps it in localStorage.
-- Endpoints: `GET /` (web chat, and `GET /monitor.js` for its Monitor tab),
+- Endpoints: `GET /` (web chat, with `GET /monitor.js` and `GET /models.js` for
+  its Monitor and Models tabs), [the Ollama API](#ollama-api),
   `GET /v1/models`, `POST /v1/chat/completions`, `POST /v1/completions`, the
   Anthropic Messages API `POST /v1/messages`
   (see [Coding agents](#coding-agents-claude-code-cursor)), `GET /metrics` and
@@ -282,7 +283,51 @@ parsed as usual, structured outputs constrain only the answer after
 `max_tokens`; a reply cut off while reasoning finishes with `length` and
 little or no `content`.
 
-### Remote access and API keys
+### Ollama API
+
+For apps with an Ollama setting. `HEAD /` answers 200, as Ollama clients expect.
+
+| Endpoint | Notes |
+| --- | --- |
+| `GET /api/version`, `GET /api/tags`, `GET /api/ps` | Version, local models, loaded model |
+| `POST /api/show` | Context length and capabilities |
+| `POST /api/create`, `POST /api/copy` | Custom models, from `from`, `system` and `parameters` or from a `modelfile` |
+| `POST /api/chat`, `POST /api/generate` | NDJSON streaming by default; `stream: false` for one reply. `raw` on `/api/generate` skips the chat template |
+| `POST /api/pull` | Built-in names and `hf:` specs, with NDJSON progress. Closing the connection stops the download, and pulling again resumes it |
+| `DELETE /api/delete` | Deletes a local model that is not loaded |
+| `GET /api/catalog`, `GET /api/model?name=` | Ingot only: this Mac, how each model runs on it, one model's details |
+| `GET /api/search?q=`, `GET /api/search/files?repo=` | Ingot only: Hugging Face search, one repository's GGUF files |
+| `POST /api/extract` | Ingot only: text of a PDF sent as the body, up to 16 MiB |
+| `GET`/`PUT /api/settings`, `GET`/`PUT /api/chats` | Ingot only: app settings and chat history, on this Mac only |
+
+`options` supports `temperature`, `top_p`, `top_k`, `min_p`, `repeat_penalty`,
+`seed`, `stop`, `num_predict` and `num_ctx`. Clients send other options by
+default, so they are accepted and ignored. `num_ctx` reloads the model only when
+it asks for more than is loaded. `keep_alive` works as in Ollama: a duration,
+seconds, a negative value to stay loaded, or 0 with no prompt to unload now. A
+request without a prompt loads the model. Model management needs `ingot serve`
+without a MODEL argument.
+
+The OpenAI endpoints accept `min_p`, `repeat_penalty`, `num_ctx` and `keep_alive`
+too, and add `GET /v1/models/{id}` and a stateless `POST /v1/responses`. Hosted
+tools sent to `/v1/responses`, such as web search, are left out.
+
+### Custom models
+
+`ingot create NAME -f Modelfile`, `POST /api/create` or the app save a model name
+with a system prompt and parameters in `MODELS/custom/NAME.json`. `FROM`, `SYSTEM`
+and `PARAMETER` take effect and `LICENSE` is ignored; other Modelfile lines are
+errors. A request's own values win. The Anthropic endpoint uses the base model
+without the prompt and parameters.
+
+A template with no system role, such as Phi-3's, gets the system text in the
+first user message.
+
+A state-changing request from a browser page on another site gets 403, for
+every endpoint. Without an API key, such a request must also come from
+`localhost`, `127.0.0.1` or `[::1]`, which stops DNS rebinding.
+
+## Remote access and API keys
 
 ```sh
 ingot serve qwen3.8-iq3_xxs --host 0.0.0.0 --api-key "$(openssl rand -hex 24)"

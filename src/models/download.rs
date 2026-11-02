@@ -11,8 +11,23 @@ use std::time::{Duration, Instant};
 /// Downloads or verifies `name` below `root`; returns the primary file path.
 /// `name` may also be an `hf:` spec for any Hugging Face GGUF.
 pub fn pull(manifest: &Manifest, name: &str, root: &Path, endpoint: &str) -> Result<PathBuf> {
+    pull_with(manifest, name, root, endpoint, &mut |_, _, _| Ok(()))
+}
+
+/// Progress of one file: name, bytes done, bytes total. An error stops the
+/// pull; the partial file stays, so a later pull resumes it.
+pub type Report<'a> = &'a mut dyn FnMut(&str, u64, u64) -> Result<()>;
+
+/// `pull` that also reports progress.
+pub fn pull_with(
+    manifest: &Manifest,
+    name: &str,
+    root: &Path,
+    endpoint: &str,
+    report: Report,
+) -> Result<PathBuf> {
     if let Some(spec) = hf::Spec::parse(name) {
-        return hf::pull(&spec?, root, endpoint);
+        return hf::pull(&spec?, root, endpoint, report);
     }
     let model = manifest.get(name)?;
     let found = locate(root, &manifest.file_names())?;
@@ -26,7 +41,9 @@ pub fn pull(manifest: &Manifest, name: &str, root: &Path, endpoint: &str) -> Res
     fs::create_dir_all(&dir)?;
     for f in &model.files {
         let target = dir.join(f.name());
-        fetch(f, &target, endpoint, || reuse(manifest, f, &found, &target))?;
+        fetch(f, &target, endpoint, report, || {
+            reuse(manifest, f, &found, &target)
+        })?;
     }
     Ok(dir.join(model.files[0].name()))
 }
@@ -36,8 +53,10 @@ pub(super) fn fetch(
     file: &ModelFile,
     target: &Path,
     endpoint: &str,
+    report: Report,
     reuse: impl FnOnce() -> Result<bool>,
 ) -> Result<()> {
+    report(file.name(), 0, file.size)?;
     if target.exists() {
         let len = fs::metadata(target)?.len();
         if len != file.size {
@@ -50,9 +69,9 @@ pub(super) fn fetch(
         verify(target, file)?;
         eprintln!("{}: verified, skipping", file.name());
     } else if !reuse()? {
-        download(file, target, endpoint)?;
+        download(file, target, endpoint, report)?;
     }
-    Ok(())
+    report(file.name(), file.size, file.size)
 }
 
 pub(super) fn agent() -> ureq::Agent {
@@ -150,7 +169,7 @@ fn hash_prefix(path: &Path, len: u64, hasher: &mut Sha256, label: &str) -> Resul
 
 /// Downloads into `NAME.part`, resuming from its length, then renames once the
 /// SHA-256 matches. A mismatching download is removed.
-fn download(file: &ModelFile, target: &Path, endpoint: &str) -> Result<()> {
+fn download(file: &ModelFile, target: &Path, endpoint: &str, report: Report) -> Result<()> {
     let url = format!(
         "{}/{}/resolve/{}/{}",
         endpoint.trim_end_matches('/'),
@@ -226,6 +245,7 @@ fn download(file: &ModelFile, target: &Path, endpoint: &str) -> Result<()> {
             output.write_all(&buffer[..n])?;
             hasher.update(&buffer[..n]);
             progress.update(have);
+            report(file.name(), have, file.size)?;
         }
         progress.finish(have);
         output.sync_all()?;

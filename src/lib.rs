@@ -1,6 +1,7 @@
 mod anthropic;
 pub mod chat;
 pub mod cli;
+pub mod commands;
 pub mod engine;
 #[cfg(test)]
 mod expert_bench;
@@ -16,11 +17,13 @@ mod model;
 pub mod models;
 pub mod onboarding;
 mod openai;
+pub mod pdf;
 mod qwen;
 pub mod sampling;
 pub mod server;
 pub mod service;
 mod session_pool;
+pub mod settings;
 mod spm;
 mod structured;
 pub mod template;

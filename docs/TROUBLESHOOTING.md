@@ -9,6 +9,23 @@ When you report a problem, include the full message, the command you ran,
 
 ## Installing
 
+### macOS cannot verify Ingot
+
+The app is not notarized yet, so a copy downloaded from the internet is blocked
+the first time. Try to open it and choose **Done**, then go to **System
+Settings > Privacy & Security** and choose **Open Anyway**. An app you built on
+this Mac opens normally.
+
+### The Mac app says it could not start
+
+Choose **Show Log**. The log is at `~/Library/Logs/Ingot/ingot.log`. **Try
+Again** starts the engine again; it also restarts by itself after a crash.
+
+### A PDF cannot be attached
+
+A scanned PDF holds pictures of pages, so there is no text to read. PDFs over
+16 MiB are also refused.
+
 ### Xcode Command Line Tools missing
 
 ```text

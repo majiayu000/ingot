@@ -4,8 +4,13 @@
 //! connection, Content-Length bodies, `Connection: close` responses.
 mod auth;
 mod catalog;
+mod discover;
+mod http;
+mod library;
 pub(crate) mod monitor;
-mod worker;
+mod ollama;
+mod responses;
+pub(crate) mod worker;
 
 use crate::engine::{Cancellation, Engine, Session, Stop};
 use crate::openai::{ApiError, Delta, Prompt, Request, TextStream, bad, parse_request};
@@ -14,10 +19,12 @@ use crate::thinking::{self, Thinking};
 use crate::tools::{self, ToolCall};
 use crate::{Result, anthropic, invalid};
 pub(crate) use catalog::Served;
+use http::{disconnected, read_request, sse};
+pub(crate) use http::{respond, write_head};
 use monitor::{Monitor, Record};
 use serde_json::{Value, json};
 use std::ffi::OsString;
-use std::io::{ErrorKind, Read, Write};
+use std::io::{ErrorKind, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -44,16 +51,53 @@ the model's own: off for Qwen, Max effort for GLM).
 needs a key unless --insecure is given.
 Images: a vision projector (--mmproj, or one mmproj*.gguf beside the model) enables
 image input; --allow-remote-images also fetches http(s) image URLs.";
-const MAX_HEADER: usize = 64 * 1024;
-const MAX_BODY: usize = 16 * 1024 * 1024;
 const MAX_CONNECTIONS: usize = 16;
 const MAX_PENDING: usize = 8;
 const MAX_EVENTS: usize = 8;
 const IO_TIMEOUT: Duration = Duration::from_secs(30);
-/// Self-contained chat page served at `/`.
-const WEB_PAGE: &str = include_str!("web/index.html");
-/// The page's Monitor tab, served at `/monitor.js`.
-const WEB_MONITOR: &str = include_str!("web/monitor.js");
+/// The app's page and its parts, served as they are.
+const WEB: [(&str, &str, &str); 8] = [
+    (
+        "/",
+        "text/html; charset=utf-8",
+        include_str!("web/index.html"),
+    ),
+    (
+        "/style.css",
+        "text/css; charset=utf-8",
+        include_str!("web/style.css"),
+    ),
+    (
+        "/chat.js",
+        "text/javascript; charset=utf-8",
+        include_str!("web/chat.js"),
+    ),
+    (
+        "/monitor.js",
+        "text/javascript; charset=utf-8",
+        include_str!("web/monitor.js"),
+    ),
+    (
+        "/models.js",
+        "text/javascript; charset=utf-8",
+        include_str!("web/models.js"),
+    ),
+    (
+        "/settings.js",
+        "text/javascript; charset=utf-8",
+        include_str!("web/settings.js"),
+    ),
+    (
+        "/shell.js",
+        "text/javascript; charset=utf-8",
+        include_str!("web/shell.js"),
+    ),
+    ("/favicon.ico", "image/svg+xml", ""),
+];
+/// True for a path of the app's page, which needs no API key.
+pub(crate) fn is_web(path: &str) -> bool {
+    WEB.iter().any(|(web, ..)| *web == path)
+}
 
 pub(crate) enum Event {
     Started {
@@ -71,7 +115,23 @@ pub(crate) enum Event {
     },
     Error(ApiError),
 }
-struct Job {
+/// What the engine worker does next, in arrival order.
+pub(crate) enum Work {
+    Run(Job),
+    /// Load a model before its first request.
+    Load {
+        model: String,
+        context: Option<usize>,
+        keep_alive: Option<Option<Duration>>,
+        done: SyncSender<std::result::Result<(), ApiError>>,
+    },
+    /// Unload a model if it is the resident one.
+    Unload {
+        model: String,
+        done: SyncSender<()>,
+    },
+}
+pub(crate) struct Job {
     /// Served id of the model to run on.
     model: String,
     chat: bool,
@@ -257,146 +317,8 @@ fn run_job(engine: &mut Engine, pool: &mut Pool<Session>, job: Job, monitor: &Mo
     });
 }
 
-struct HttpRequest {
-    method: String,
-    path: String,
-    body: Vec<u8>,
-    credentials: auth::Credentials,
-}
-fn read_request(stream: &mut TcpStream) -> std::result::Result<HttpRequest, ApiError> {
-    let mut buf = vec![];
-    let mut chunk = [0u8; 8192];
-    let end = loop {
-        if let Some(i) = buf.windows(4).position(|w| w == b"\r\n\r\n") {
-            break i;
-        }
-        if buf.len() > MAX_HEADER {
-            return Err(ApiError::new(431, "request headers too large"));
-        }
-        match stream.read(&mut chunk) {
-            Ok(0) | Err(_) => return Err(ApiError::new(400, "incomplete request")),
-            Ok(n) => buf.extend_from_slice(&chunk[..n]),
-        }
-    };
-    let head = std::str::from_utf8(&buf[..end])
-        .map_err(|_| ApiError::new(400, "headers must be UTF-8"))?;
-    let mut lines = head.split("\r\n");
-    let line: Vec<_> = lines.next().unwrap_or("").split(' ').collect();
-    let [method, target, version] = line[..] else {
-        return Err(ApiError::new(400, "malformed request line"));
-    };
-    if !version.starts_with("HTTP/1.") {
-        return Err(ApiError::new(400, "only HTTP/1.x is supported"));
-    }
-    let mut length = None;
-    let mut expect_continue = false;
-    let mut credentials = auth::Credentials::default();
-    for line in lines {
-        let (name, value) = line
-            .split_once(':')
-            .ok_or_else(|| ApiError::new(400, "malformed header"))?;
-        let value = value.trim();
-        let name = name.trim().to_ascii_lowercase();
-        if credentials.header(&name, value) {
-            continue;
-        }
-        match name.as_str() {
-            "content-length" => {
-                length = Some(
-                    value
-                        .parse::<usize>()
-                        .map_err(|_| ApiError::new(400, "invalid Content-Length"))?,
-                )
-            }
-            "transfer-encoding" => {
-                return Err(ApiError::new(
-                    501,
-                    "Transfer-Encoding is not supported; send Content-Length",
-                ));
-            }
-            "expect" => expect_continue = value.eq_ignore_ascii_case("100-continue"),
-            _ => {}
-        }
-    }
-    let length = match (method, length) {
-        ("POST", None) => return Err(ApiError::new(411, "Content-Length is required")),
-        (_, l) => l.unwrap_or(0),
-    };
-    if length > MAX_BODY {
-        return Err(ApiError::new(413, "request body too large"));
-    }
-    let mut body = buf[end + 4..].to_vec();
-    if expect_continue && body.len() < length {
-        stream
-            .write_all(b"HTTP/1.1 100 Continue\r\n\r\n")
-            .map_err(|_| ApiError::new(400, "connection closed"))?;
-    }
-    while body.len() < length {
-        match stream.read(&mut chunk) {
-            Ok(0) | Err(_) => return Err(ApiError::new(400, "incomplete request body")),
-            Ok(n) => body.extend_from_slice(&chunk[..n]),
-        }
-    }
-    body.truncate(length);
-    Ok(HttpRequest {
-        method: method.to_owned(),
-        path: target.split('?').next().unwrap_or("").to_owned(),
-        body,
-        credentials,
-    })
-}
-pub(crate) fn write_head(
-    stream: &mut TcpStream,
-    status: u16,
-    content_type: &str,
-    length: Option<usize>,
-) -> std::io::Result<()> {
-    let reason = match status {
-        200 => "OK",
-        400 => "Bad Request",
-        401 => "Unauthorized",
-        404 => "Not Found",
-        405 => "Method Not Allowed",
-        411 => "Length Required",
-        413 => "Payload Too Large",
-        431 => "Request Header Fields Too Large",
-        501 => "Not Implemented",
-        503 => "Service Unavailable",
-        _ => "Internal Server Error",
-    };
-    let mut head = format!(
-        "HTTP/1.1 {status} {reason}\r\nContent-Type: {content_type}\r\nConnection: close\r\n"
-    );
-    match length {
-        Some(n) => head += &format!("Content-Length: {n}\r\n"),
-        None => head += "Cache-Control: no-cache\r\n",
-    }
-    stream.write_all((head + "\r\n").as_bytes())
-}
-pub(crate) fn respond(stream: &mut TcpStream, status: u16, body: &Value) {
-    let body = body.to_string();
-    // The client may already be gone; there is nobody left to report to.
-    let _ = write_head(stream, status, "application/json", Some(body.len()))
-        .and_then(|_| stream.write_all(body.as_bytes()));
-}
-fn sse(stream: &mut TcpStream, value: &Value) -> std::io::Result<()> {
-    stream.write_all(format!("data: {value}\n\n").as_bytes())
-}
-/// True once the peer has closed its side (the whole request was already read).
-fn disconnected(stream: &TcpStream) -> bool {
-    if stream.set_nonblocking(true).is_err() {
-        return true;
-    }
-    let gone = match stream.peek(&mut [0u8]) {
-        Ok(0) => true,
-        Ok(_) => false,
-        Err(e) => e.kind() != ErrorKind::WouldBlock,
-    };
-    gone || stream.set_nonblocking(false).is_err()
-}
-
 pub(crate) struct Shared {
-    jobs: SyncSender<Job>,
+    jobs: SyncSender<Work>,
     pub(crate) served: Served,
     pub(crate) next_id: AtomicU64,
     api_key: Option<String>,
@@ -409,7 +331,7 @@ pub(crate) struct Shared {
     fixed_vision: bool,
 }
 impl Shared {
-    fn new(jobs: SyncSender<Job>, served: Served) -> Self {
+    fn new(jobs: SyncSender<Work>, served: Served) -> Self {
         Self {
             jobs,
             served,
@@ -447,7 +369,7 @@ impl Events {
             cancel: cancel.clone(),
             events,
         };
-        shared.jobs.try_send(job).map_err(|e| match e {
+        shared.jobs.try_send(Work::Run(job)).map_err(|e| match e {
             TrySendError::Full(_) => ApiError::new(503, "server busy; retry later"),
             TrySendError::Disconnected(_) => ApiError::new(500, "engine worker stopped"),
         })?;
@@ -497,6 +419,10 @@ fn openai_calls(calls: &[ToolCall], id: &str, index: bool) -> Value {
         })
         .collect()
 }
+fn model_object(id: &str, shared: &Shared) -> Value {
+    json!({"id": id, "object": "model", "created": 0, "owned_by": "ingot",
+        "vision": shared.served.vision(id, shared.fixed_vision)})
+}
 fn handle(mut stream: TcpStream, shared: Arc<Shared>) {
     if stream.set_read_timeout(Some(IO_TIMEOUT)).is_err()
         || stream.set_write_timeout(Some(IO_TIMEOUT)).is_err()
@@ -507,6 +433,10 @@ fn handle(mut stream: TcpStream, shared: Arc<Shared>) {
         Ok(r) => r,
         Err(e) => return respond(&mut stream, e.status, &e.body()),
     };
+    if request.foreign(shared.api_key.is_some()) {
+        let e = ApiError::new(403, "requests from another site are not allowed");
+        return respond(&mut stream, e.status, &e.body());
+    }
     let (method, path) = (request.method.as_str(), request.path.as_str());
     if let Some(key) = &shared.api_key
         && !auth::public(method, path)
@@ -514,14 +444,23 @@ fn handle(mut stream: TcpStream, shared: Arc<Shared>) {
     {
         return respond(&mut stream, 401, &auth::rejection(path));
     }
+    if path.starts_with("/api/") {
+        return ollama::handle(stream, &request, &shared);
+    }
     let page = |stream: &mut TcpStream, kind: &str, body: &str| {
         let _ = write_head(stream, 200, kind, Some(body.len()))
             .and_then(|_| stream.write_all(body.as_bytes()));
     };
+    if method == "GET"
+        && let Some((_, kind, body)) = WEB.iter().find(|(web, ..)| *web == path)
+    {
+        return page(&mut stream, kind, body);
+    }
     let chat = match (method, path) {
-        ("GET", "/") => return page(&mut stream, "text/html; charset=utf-8", WEB_PAGE),
-        ("GET", "/monitor.js") => {
-            return page(&mut stream, "text/javascript; charset=utf-8", WEB_MONITOR);
+        // Ollama clients check the server is up this way before every command.
+        ("HEAD", "/") => {
+            let _ = write_head(&mut stream, 200, "text/plain", Some(0));
+            return;
         }
         ("GET", "/metrics") => {
             let text = shared.monitor.metrics();
@@ -533,29 +472,40 @@ fn handle(mut stream: TcpStream, shared: Arc<Shared>) {
                 Ok(ids) => ids,
                 Err(e) => return respond(&mut stream, e.status, &e.body()),
             };
-            let data: Vec<_> = ids
-                .iter()
-                .map(|id| {
-                    json!({"id": id, "object": "model", "created": 0, "owned_by": "ingot",
-                    "vision": shared.served.vision(id, shared.fixed_vision)})
-                })
-                .collect();
+            let data: Vec<_> = ids.iter().map(|id| model_object(id, &shared)).collect();
             return respond(&mut stream, 200, &json!({"object": "list", "data": data}));
         }
+        ("GET", path) if path.starts_with("/v1/models/") => {
+            let id = http::decode(&path["/v1/models/".len()..]);
+            return match shared.served.list() {
+                Ok(ids) if ids.contains(&id) => {
+                    respond(&mut stream, 200, &model_object(&id, &shared));
+                }
+                Ok(_) => {
+                    let e = ApiError::new(404, format!("model '{id}' not found"));
+                    respond(&mut stream, e.status, &e.body());
+                }
+                Err(e) => respond(&mut stream, e.status, &e.body()),
+            };
+        }
+        ("POST", "/v1/responses") => return responses::handle(stream, &request.body, &shared),
         ("POST", "/v1/chat/completions") => true,
         ("POST", "/v1/completions") => false,
         ("POST", "/v1/messages") => return anthropic::handle(stream, &request.body, &shared),
         (
             method,
-            "/"
-            | "/monitor.js"
-            | "/metrics"
+            "/metrics"
             | "/v1/status"
             | "/v1/models"
             | "/v1/chat/completions"
             | "/v1/completions"
+            | "/v1/responses"
             | "/v1/messages",
         ) => {
+            let e = ApiError::new(405, format!("method {method} not allowed"));
+            return respond(&mut stream, e.status, &e.body());
+        }
+        (method, path) if is_web(path) => {
             let e = ApiError::new(405, format!("method {method} not allowed"));
             return respond(&mut stream, e.status, &e.body());
         }
@@ -564,10 +514,10 @@ fn handle(mut stream: TcpStream, shared: Arc<Shared>) {
             return respond(&mut stream, e.status, &e.body());
         }
     };
-    let parsed = shared
-        .served
-        .openai(&request.body)
-        .and_then(|model| Ok((parse_request(&request.body, chat, &model)?, model)));
+    let parsed = shared.served.customized(&request.body).and_then(|body| {
+        let model = shared.served.openai(&body)?;
+        Ok((parse_request(&body, chat, &model)?, model))
+    });
     let (parsed, model) = match parsed {
         Ok(r) => r,
         Err(e) => return respond(&mut stream, e.status, &e.body()),
@@ -764,7 +714,7 @@ pub fn main(args: &[OsString]) -> Result<()> {
         monitor.clone(),
     );
     match &served {
-        Served::Fixed(id) => worker.ensure(id)?,
+        Served::Fixed(id) => worker.ensure(id, None)?,
         Served::Local(local) => {
             let ids = local.list()?;
             eprintln!(
@@ -792,7 +742,7 @@ pub fn main(args: &[OsString]) -> Result<()> {
         },
         default_thinking.map_or("from the model", |t| t.name()),
     );
-    let (jobs, queue) = mpsc::sync_channel::<Job>(MAX_PENDING);
+    let (jobs, queue) = mpsc::sync_channel::<Work>(MAX_PENDING);
     let mut shared = Shared::new(jobs, served);
     shared.api_key = api_key;
     shared.thinking = default_thinking;

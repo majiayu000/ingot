@@ -14,39 +14,49 @@ It does not use llama.cpp or MLX at run time.
 
 ## Get started
 
-You need an Apple Silicon Mac, macOS 15 or later, Rust 1.88+ and the Xcode
-Command Line Tools. The installer checks all of them. There is no prebuilt
-download yet.
+You need an Apple Silicon Mac and macOS 15 or later. There is no prebuilt
+download yet, so build it first with Rust 1.88+ and the Xcode Command Line
+Tools:
 
 ```sh
 git clone https://github.com/majiayu000/ingot.git
 cd ingot
-scripts/install.sh
-ingot
+scripts/package-app.sh       # the Mac app and disk image, in dist/
+scripts/install.sh           # or only the command line tool
 ```
 
-Pick a model, confirm the download, and start typing. Your conversations stay
-on your Mac.
+**Mac app:** open `dist/Ingot-0.1.0.dmg` and drag Ingot to Applications. It
+opens on a list of models rated for your Mac. Pick one, wait for the download,
+and start typing. Chats, projects, PDF and text attachments, custom models and
+settings are all in the app. Ingot stays in the menu bar so your other apps can
+reach it.
+
+**Command line:** run `ingot`, pick a model and confirm the download.
+
+Your conversations stay on your Mac.
 
 ## What it does
 
-- **Chat anywhere:** in the terminal, or in the built-in web page at
-  <http://127.0.0.1:8080/> after running `ingot serve`.
-- **Works with your tools:** OpenAI and Anthropic compatible APIs for Open
-  WebUI, Cursor, Claude Code and similar clients.
+- **Chat anywhere:** in the Mac app, in the terminal, or in the built-in web
+  page at <http://127.0.0.1:8080/> after running `ingot serve`.
+- **Works with your tools:** OpenAI, Anthropic and Ollama compatible APIs for
+  Open WebUI, Cursor, Claude Code and any app with an Ollama setting.
 - **Runs very large models:** Qwen3.8-Flash-Next and GLM-5.3-Flash, with the
   experts that do not fit in memory streamed from SSD.
 - **Runs common GGUF models:** Llama, Qwen2, Qwen3, Qwen3-MoE, Gemma 3, Gemma 4
   and Phi-3 family files, from the built-in list or directly from Hugging Face.
+- **Finds and shapes models:** search Hugging Face from the app, and save custom
+  models with your own prompt and parameters, or import a Modelfile.
+- **Starts your tools:** `ingot launch claude`, `codex` or `opencode`.
 - **Covers the details:** tool calling, thinking levels, image input (Qwen3.8),
   API keys, Prometheus metrics, a background service, and resumable downloads
   checked with SHA-256.
 
 ## Which model?
 
-Run `ingot` and press Enter. It checks this Mac's memory and free disk,
-recommends the best model that fits, and picks a context length for it. A model
-you already downloaded comes first if it fits.
+Open the app, or run `ingot` and press Enter. Ingot checks this Mac's memory and
+free disk, recommends the best model that fits, and picks a context length for
+it. A model you already downloaded comes first if it fits.
 
 Examples, with the memory each needs at a context of 8192 tokens:
 
@@ -62,6 +72,9 @@ first screen of `ingot` shows the number for your Mac.
 
 ```sh
 ingot models                # everything available, and what fits
+ingot list                  # what you have
+ingot ps                    # what is loaded
+ingot stop qwen3-8b-q4_k_m  # free its memory now
 ingot run qwen3-8b-q4_k_m   # skip the menu
 ```
 
@@ -77,9 +90,11 @@ ingot serve qwen3-8b-q4_k_m
 | --- | --- |
 | Browser | Open <http://127.0.0.1:8080/> |
 | Open WebUI, Cursor, other OpenAI clients | Base URL `http://127.0.0.1:8080/v1`, model name from `/v1/models` |
+| Apps with an Ollama setting | Server `http://127.0.0.1:8080` |
 | Claude Code | [Setup guide](docs/QUICKSTART.md#claude-code) |
 
-The server listens on this Mac only by default. To reach it from a phone or
+The Mac app starts this server for you at port 11435. Use **Copy API Address**
+in its menu bar icon. The server listens on this Mac only by default. To reach it from a phone or
 another computer, see [Remote access](docs/REFERENCE.md#remote-access-and-api-keys).
 
 ## Performance
@@ -103,6 +118,8 @@ Ingot is an early project.
 
 - Tested on one machine only. Other chips, memory sizes and macOS versions are
   untested.
+- The Mac app is not notarized yet, so macOS asks you to allow it the first
+  time. See [Troubleshooting](docs/TROUBLESHOOTING.md#macos-cannot-verify-ingot).
 - The server runs one inference at a time and has no TLS.
 - Tool calling is not available for GLM. Image input needs Qwen3.8 and its
   vision projector.

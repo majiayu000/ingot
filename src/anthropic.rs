@@ -263,6 +263,7 @@ pub(crate) fn parse_request(body: &[u8]) -> Result<(Request, String), ApiError> 
             .and_then(Value::as_u64)
             .map_or(d.top_k, |v| v as usize),
         seed: crate::sampling::random_seed(),
+        ..d
     };
     sampling.validate().map_err(|e| bad(e.to_string(), None))?;
     let stop = match fields.get("stop_sequences") {
@@ -296,6 +297,8 @@ pub(crate) fn parse_request(body: &[u8]) -> Result<(Request, String), ApiError> 
         clamp_max_tokens: true,
         format: crate::structured::anthropic(&fields)?,
         thinking: parse_thinking(fields.get("thinking"))?,
+        context: None,
+        keep_alive: None,
     };
     Ok((request, model))
 }

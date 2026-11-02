@@ -19,6 +19,25 @@ If you want an AI coding agent to do the setup for you, point it at
 Ingot is an early project. It has been tested on one machine (M2 Max,
 96 GiB). Other Macs should work but are untested.
 
+## The Mac app
+
+Run `scripts/package-app.sh`, open `dist/Ingot-0.1.0.dmg` and drag Ingot to
+Applications. The app has the same chat and model list as the steps below, and
+its menu bar icon can start Ingot at login, copy the API address and install the
+`ingot` command. Models are shared with the command line. Apps connect to
+`http://127.0.0.1:11435`, or the next free port if that one is taken.
+
+- **Models:** ratings for this Mac, Hugging Face search, model details and custom
+  models.
+- **Chat:** search, projects, and images, PDFs and text files as attachments.
+  PDF text goes straight into the prompt, so a long document needs a model with a
+  long context. A scanned PDF has no text to read and is refused.
+- **Connect:** starts Claude Code, Codex and OpenCode in Terminal with your model.
+- **Settings:** model folder, default model, context, idle unload, port, API key
+  and access from other devices. Changing a server setting restarts the engine.
+
+The rest of this guide covers the command line.
+
 ## Install
 
 Open the **Terminal** app and run:

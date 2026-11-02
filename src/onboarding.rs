@@ -60,16 +60,16 @@ pub fn main(args: &[OsString]) -> Result<()> {
 }
 
 /// What this Mac offers a model.
-struct Mac {
-    device: String,
+pub(crate) struct Mac {
+    pub(crate) device: String,
     /// Engine memory available by default.
-    cap_gib: u64,
+    pub(crate) cap_gib: u64,
     /// Free space on the model disk.
-    free_bytes: u64,
+    pub(crate) free_bytes: u64,
 }
 
 impl Mac {
-    fn probe(root: &Path) -> Result<Self> {
+    pub(crate) fn probe(root: &Path) -> Result<Self> {
         let (device, working_set) = models::working_set()?;
         Ok(Self {
             device,
@@ -80,7 +80,7 @@ impl Mac {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Fit {
+pub(crate) enum Fit {
     /// Runs in memory at this context.
     Memory(usize),
     /// Runs with experts streamed from SSD.
@@ -93,7 +93,7 @@ fn gib(bytes: u64) -> f64 {
     bytes as f64 / (1u64 << 30) as f64
 }
 
-fn fit(model: &Model, present: bool, mac: &Mac) -> Fit {
+pub(crate) fn fit(model: &Model, present: bool, mac: &Mac) -> Fit {
     if !present && model.download_bytes() > mac.free_bytes {
         Fit::NoDisk
     } else if let Some(context) = model.fitting_context(mac.cap_gib) {
@@ -108,7 +108,7 @@ fn fit(model: &Model, present: bool, mac: &Mac) -> Fit {
 /// Best choice: a downloaded model that runs in memory, then a new one, then
 /// slower options. Longer context wins, then manifest order; when nothing can
 /// run, the smallest download.
-fn recommended(choices: &[(&Model, bool)], mac: &Mac) -> usize {
+pub(crate) fn recommended(choices: &[(&Model, bool)], mac: &Mac) -> usize {
     (0..choices.len())
         .min_by_key(|&index| {
             let (model, present) = choices[index];
@@ -124,7 +124,7 @@ fn recommended(choices: &[(&Model, bool)], mac: &Mac) -> usize {
         .unwrap_or(0)
 }
 
-fn installed(manifest: &Manifest, model: &Model, root: &Path) -> Result<bool> {
+pub(crate) fn installed(manifest: &Manifest, model: &Model, root: &Path) -> Result<bool> {
     match models::resolve(manifest, &model.name, root) {
         Ok(_) => Ok(true),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
@@ -346,6 +346,7 @@ mod tests {
                     } else {
                         Kind::Main
                     },
+                    title: String::new(),
                     summary: format!("{name} test model"),
                     resident_bytes: 4,
                     draft: None,
@@ -375,6 +376,7 @@ mod tests {
         Model {
             name: name.into(),
             kind: Kind::Main,
+            title: String::new(),
             summary: String::new(),
             resident_bytes: 4,
             draft: None,

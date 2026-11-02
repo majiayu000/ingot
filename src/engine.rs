@@ -461,10 +461,12 @@ impl Engine {
         let ple_start = self.model.ple_read_time();
         let cache_start = self.model.cache_statistics();
         let workspace_start = self.model.workspace_statistics();
-        let mut sampler = if sampling.is_greedy() && constraint.is_none() {
+        let mut sampler = if sampling.needs_no_sampler() && constraint.is_none() {
             None
         } else {
-            Some(Sampler::new(*sampling)?)
+            let mut sampler = Sampler::new(*sampling)?;
+            sampler.remember(prompt);
+            Some(sampler)
         };
         // Draft heads are trained on text positions only.
         let mtp = self.has_draft() && sampler.is_none() && !vision::has_images(prompt);
