@@ -6,6 +6,7 @@
 # until the user allows it in System Settings. For public downloads:
 #   INGOT_SIGN_ID="Developer ID Application: NAME (TEAM)"   sign the app and image
 #   INGOT_NOTARY_PROFILE=PROFILE   notarize with `notarytool store-credentials` PROFILE
+#   INGOT_NOTARY_KEYCHAIN=PATH     the keychain holding PROFILE, if it was stored with --keychain
 # A signed build also writes dist/appcast.xml for Sparkle, signed with the
 # EdDSA key that `generate_keys --account ingot` keeps in the login keychain.
 # Attach both files to the GitHub release.
@@ -24,6 +25,8 @@ dmg="$dist/Ingot-$version.dmg"
 appcast="$dist/appcast.xml"
 sparkle="$root/app/.build/artifacts/sparkle/Sparkle"
 sign_id="${INGOT_SIGN_ID:--}"
+notary=(--keychain-profile "${INGOT_NOTARY_PROFILE:-}")
+[ -z "${INGOT_NOTARY_KEYCHAIN:-}" ] || notary+=(--keychain "$INGOT_NOTARY_KEYCHAIN")
 
 cargo build --release --locked --bin ingot
 swift build -c release --package-path app
@@ -71,7 +74,7 @@ codesign --verify --strict "$app"
 # The app carries its own ticket too, so it opens offline once copied out.
 if [ -n "${INGOT_NOTARY_PROFILE:-}" ]; then
   ditto -c -k --keepParent "$app" "$work/Ingot.zip"
-  xcrun notarytool submit "$work/Ingot.zip" --keychain-profile "$INGOT_NOTARY_PROFILE" --wait
+  xcrun notarytool submit "$work/Ingot.zip" "${notary[@]}" --wait
   xcrun stapler staple "$app"
 fi
 
@@ -115,7 +118,7 @@ if [ "$sign_id" != - ]; then
   codesign --force --sign "$sign_id" --timestamp "$dmg"
 fi
 if [ -n "${INGOT_NOTARY_PROFILE:-}" ]; then
-  xcrun notarytool submit "$dmg" --keychain-profile "$INGOT_NOTARY_PROFILE" --wait
+  xcrun notarytool submit "$dmg" "${notary[@]}" --wait
   xcrun stapler staple "$dmg"
 fi
 if [ "$sign_id" != - ]; then
