@@ -81,7 +81,15 @@
       row("Model folder", settings.models_dir || (catalog ? catalog.directory : ""), folder),
       row("Keep running in the menu bar", "When off, closing the window quits Ingot", switchButton("menu_bar"))];
     if (typeof window.ingotLogin === "boolean") general.push(row("Open at login", "", loginSwitch()));
-    general.push(row("Check for updates automatically", update || "", switchButton("check_updates")));
+    // The Mac app installs updates itself; a browser can only point at them.
+    let updates = switchButton("check_updates");
+    updates.setAttribute("aria-label", "Check for updates automatically");
+    if (document.body.classList.contains("native")) {
+      const line = element("div", "buttons");
+      line.append(button("Check now", () => native({ action: "checkUpdates" })), updates);
+      updates = line;
+    }
+    general.push(row("Check for updates automatically", update || "", updates));
     const server = element("div", "panel");
     const port = element("input");
     port.type = "number";

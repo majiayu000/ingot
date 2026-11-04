@@ -72,6 +72,8 @@ struct WebView: NSViewRepresentable {
                 }
             case "chooseFolder":
                 chooseFolder()
+            case "checkUpdates":
+                Updates.check()
             case "login":
                 if let on = body["on"] as? Bool { openAtLogin(on) }
             default:

@@ -176,6 +176,7 @@ final class Engine: ObservableObject {
         let inserted = settings["menu_bar"] as? Bool ?? true
         if inserted != showsMenuBarItem { showsMenuBarItem = inserted }
         apiKey = settings["api_key"] as? String ?? ""
+        Updates.setAutomatic(settings["check_updates"] as? Bool ?? true)
     }
 
     private func arguments(port: UInt16, settings: [String: Any]) -> [String] {

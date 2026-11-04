@@ -26,7 +26,8 @@ First public release.
 - Per-kernel GPU timing via `INGOT_KERNEL_PROFILE`.
 - Mac app (`scripts/package-app.sh`): disk image, native window and menu bar
   panel, first-run model list, downloads with progress, crash recovery, system
-  proxy support and start at login.
+  proxy support, start at login and automatic updates (Sparkle, EdDSA-signed
+  appcast on the GitHub release). The app and disk image are notarized.
 - App pages: Hugging Face search, model details, custom models, Connect apps and
   Settings. Chat search, projects, and PDF and text attachments. Chats are stored
   in a file on this Mac. The interface follows the system's light or dark mode.

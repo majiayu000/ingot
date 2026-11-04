@@ -16,6 +16,11 @@ struct IngotApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1180, height: 780)
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") { Updates.check() }
+            }
+        }
 
         // SwiftUI writes this binding on every update, so an unchanged value
         // must not publish, or it would update forever.
@@ -31,6 +36,7 @@ struct IngotApp: App {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        _ = Updates.controller
         Engine.shared.start()
     }
     // With the menu bar item, closing the window keeps the server running for
@@ -143,6 +149,8 @@ struct StatusPanel: View {
                         Engine.alert("Start at Login is not available", error.localizedDescription)
                     }
                 }
+            Button("Check for Updates…") { Updates.check() }
+                .buttonStyle(.plain)
             Button("Install Command Line Tool") { engine.installCommandLineTool() }
                 .buttonStyle(.plain)
             Button("Show Log") { engine.showLog() }

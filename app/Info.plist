@@ -14,6 +14,9 @@
   <key>LSApplicationCategoryType</key><string>public.app-category.developer-tools</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSHumanReadableCopyright</key><string>MIT License</string>
+  <key>SUFeedURL</key><string>https://github.com/majiayu000/ingot/releases/latest/download/appcast.xml</string>
+  <key>SUPublicEDKey</key><string>O2iqXkmJ7kdW5Ar0xCqIBlqwhMNZmzT4htu2tx/NbY4=</string>
+  <key>SUEnableAutomaticChecks</key><true/>
   <key>NSAppTransportSecurity</key>
   <dict><key>NSAllowsLocalNetworking</key><true/></dict>
 </dict>
