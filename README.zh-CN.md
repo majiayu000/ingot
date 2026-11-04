@@ -108,8 +108,6 @@ Ingot 最强的是专门优化过的 Qwen3.8 和 GLM-5.3。标准 GGUF 模型结
 Ingot 还是早期项目。
 
 - 只在一台机器上测试过，其他芯片、内存大小和 macOS 版本都没有测试。
-- Mac 应用还没有公证，第一次打开时 macOS 会要求你手动允许，见
-  [故障排查](docs/TROUBLESHOOTING.md#macos-cannot-verify-ingot)。
 - 服务一次只运行一个推理请求，不支持 TLS。
 - GLM 不支持工具调用。图片输入需要 Qwen3.8 及其视觉投影模型。
 - 其他 GGUF 架构会直接报错。

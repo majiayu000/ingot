@@ -118,8 +118,6 @@ Ingot is an early project.
 
 - Tested on one machine only. Other chips, memory sizes and macOS versions are
   untested.
-- The Mac app is not notarized yet, so macOS asks you to allow it the first
-  time. See [Troubleshooting](docs/TROUBLESHOOTING.md#macos-cannot-verify-ingot).
 - The server runs one inference at a time and has no TLS.
 - Tool calling is not available for GLM. Image input needs Qwen3.8 and its
   vision projector.

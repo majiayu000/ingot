@@ -11,10 +11,11 @@ When you report a problem, include the full message, the command you ran,
 
 ### macOS cannot verify Ingot
 
-The app is not notarized yet, so a copy downloaded from the internet is blocked
-the first time. Try to open it and choose **Done**, then go to **System
-Settings > Privacy & Security** and choose **Open Anyway**. An app you built on
-this Mac opens normally.
+The disk image on the releases page is signed and notarized, so it opens
+normally. A copy built with `scripts/package-app.sh` and no `INGOT_SIGN_ID` is
+signed ad hoc, and another Mac blocks it the first time. Try to open it and
+choose **Done**, then go to **System Settings > Privacy & Security** and choose
+**Open Anyway**.
 
 ### The Mac app says it could not start
 

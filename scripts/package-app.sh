@@ -55,6 +55,12 @@ options=(--force --sign "$sign_id")
 codesign "${options[@]}" "$app/Contents/Resources/ingot"
 codesign "${options[@]}" "$app"
 codesign --verify --strict "$app"
+# The app carries its own ticket too, so it opens offline once copied out.
+if [ -n "${INGOT_NOTARY_PROFILE:-}" ]; then
+  ditto -c -k --keepParent "$app" "$work/Ingot.zip"
+  xcrun notarytool submit "$work/Ingot.zip" --keychain-profile "$INGOT_NOTARY_PROFILE" --wait
+  xcrun stapler staple "$app"
+fi
 
 # A writable image first: the window layout lives in its .DS_Store.
 image="$work/Ingot.dmg"
