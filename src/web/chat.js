@@ -370,6 +370,7 @@ function renderChats() {
       document.body.classList.remove("sidebar");
       go("chat");
       show();
+      if (searchText) highlightMatches(searchText);
     };
     ul.append(li);
   }
@@ -534,6 +535,7 @@ async function generate() {
 function send() {
   const text = $("input").value;
   if ((!text.trim() && !attachments.length && !documents.length) || controller) return;
+  if (!$("model").value) return go("models");
   $("input").value = "";
   fitInput();
   const c = chat();
@@ -557,7 +559,7 @@ let vision = {}, thinks = {};
 const MAX_TEXT = 4 * 1024 * 1024;
 function canSee() { return !!vision[$("model").value]; }
 // The thinking picker shows only for models whose template can think.
-function updateAttach() { $("attach").disabled = !!controller; $("thinking").hidden = thinks[$("model").value] === false; }
+function updateAttach() { $("attach").disabled = !!controller; $("thinking").hidden = !thinks[$("model").value]; }
 function fileChip(f) {
   const chip = document.createElement("span");
   chip.className = "chip";
@@ -730,6 +732,7 @@ function loadModels() {
 }
 function showModels(v) {
   const ids = (v.data || []).map((m) => m.id).filter(Boolean);
+  document.body.classList.toggle("nomodel", !ids.length);
   if (!ids.length) {
     $("model").replaceChildren(new Option("No model yet", ""));
     updateAttach();

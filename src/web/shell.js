@@ -8,6 +8,28 @@ function applyTheme(theme) {
 }
 applyTheme(load("theme", "system"));
 
+// Opening a search result marks the matches and scrolls to the first.
+function highlightMatches(text) {
+  const needle = text.toLowerCase();
+  const walker = document.createTreeWalker($("log"), NodeFilter.SHOW_TEXT);
+  const hits = [];
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.nodeValue.toLowerCase().includes(needle)) hits.push(node);
+  }
+  let first = null;
+  for (const node of hits) {
+    const parts = node.nodeValue.split(new RegExp(`(${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "i"));
+    const marked = parts.map((part, i) => {
+      if (i % 2 === 0) return document.createTextNode(part);
+      const mark = element("mark", "", part);
+      first = first || mark;
+      return mark;
+    });
+    node.replaceWith(...marked);
+  }
+  if (first) first.scrollIntoView({ block: "center" });
+}
+
 // Called from the conversation list in chat.js.
 function renameChat(c, title) {
   const input = document.createElement("input");
@@ -62,6 +84,19 @@ function renameChat(c, title) {
     $("engine-state").textContent = state;
     $("engine-dot").classList.toggle("on", on);
   }
+  // While the engine is down the notice offers a retry; when it is back the
+  // model list, which failed at start, loads again.
+  let down = false;
+  function engineDown(on) {
+    $("offline").hidden = !on;
+    if (down && !on) {
+      $("status").textContent = "";
+      loadModels().catch(() => null);
+    }
+    down = on;
+  }
+  $("offline-retry").onclick = () => { if (!native({ action: "restart" })) refresh(); };
+  $("first-pick").onclick = () => go("models");
   async function refresh() {
     clearTimeout(timer);
     try {
@@ -79,8 +114,10 @@ function renameChat(c, title) {
           showEngine(titles[s.model] || s.model, s.active ? "Generating" : "Loaded, " + memory, true);
         }
       }
+      engineDown(false);
     } catch (e) {
       showEngine("Ingot", "Engine not running", false);
+      engineDown(true);
     }
     if (!document.hidden) timer = setTimeout(refresh, REFRESH_MS);
   }
