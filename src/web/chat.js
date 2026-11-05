@@ -191,7 +191,20 @@ function markdown(source) {
 }
 
 // ---------- Rendering ----------
-function scrollDown() { const s = $("scroll"); s.scrollTop = s.scrollHeight; }
+// The answer follows new text only while the reader is at the bottom.
+let following = true;
+function scrollDown(force) {
+  const s = $("scroll");
+  if (force) following = true;
+  if (following) s.scrollTop = s.scrollHeight;
+  $("latest").hidden = following;
+}
+$("scroll").addEventListener("scroll", () => {
+  const s = $("scroll");
+  following = s.scrollHeight - s.scrollTop - s.clientHeight < 48;
+  $("latest").hidden = following;
+});
+$("latest").onclick = () => scrollDown(true);
 
 async function copy(text, button) {
   const label = button.textContent;
@@ -339,6 +352,8 @@ function renderChats() {
     const title = document.createElement("span");
     title.textContent = c.title;
     title.title = c.title;
+    const rename = action("Rename", "Rename this conversation", (e) => { e.stopPropagation(); renameChat(c, title); });
+    title.ondblclick = rename.onclick;
     const del = action("✕", "Delete this conversation", (e) => {
       e.stopPropagation();
       if (controller) return;
@@ -347,7 +362,7 @@ function renderChats() {
       persist();
       show();
     });
-    li.append(title, del);
+    li.append(title, rename, del);
     li.onclick = () => {
       if (controller) return;
       current = c;
@@ -372,7 +387,7 @@ function render() {
     if (m.role === "assistant") last.assistant = i;
   });
   messages.forEach((m, i) => log.append(bubble(m, i, last)));
-  scrollDown();
+  scrollDown(true);
 }
 
 function show() {
@@ -762,7 +777,3 @@ const modelsReady = readChats().then(() => {
   $("status").textContent = "Cannot list models (" + e.message + "); is the server running?";
   return null;
 });
-// The app restarts the engine when server settings change: return to the page.
-const lastView = load("view", "chat");
-go(["model", "custom"].includes(lastView) ? "models" : lastView);
-$("input").focus();

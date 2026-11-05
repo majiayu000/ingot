@@ -10,8 +10,9 @@
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --serif: ui-serif, "New York", Georgia, serif;
 }
+/* Appearance follows the system unless Settings picks light or dark. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #262624; --side: #1f1e1d; --panel: #30302e; --text: #f3f1ea; --muted: #a9a69d;
     --line: #3b3a36; --hover: rgba(255, 255, 255, .06); --active: rgba(255, 255, 255, .09);
     --chip: #33322f; --bubble: #141413; --code: #1e1e1c; --off: #4a4945;
@@ -19,6 +20,15 @@
     --good: #7fd1a4; --bad: #f2a194;
   }
 }
+:root[data-theme="dark"] {
+  --bg: #262624; --side: #1f1e1d; --panel: #30302e; --text: #f3f1ea; --muted: #a9a69d;
+  --line: #3b3a36; --hover: rgba(255, 255, 255, .06); --active: rgba(255, 255, 255, .09);
+  --chip: #33322f; --bubble: #141413; --code: #1e1e1c; --off: #4a4945;
+  --accent-soft: rgba(224, 161, 96, .12); --accent-ink: #e8b57c;
+  --good: #7fd1a4; --bad: #f2a194;
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 [hidden] { display: none !important; }
@@ -72,13 +82,14 @@ body.collapsed .rail { display: none; }
 .searchrow input::-webkit-search-cancel-button { display: none; }
 .lists { flex: 1; min-height: 0; overflow-y: auto; margin-top: 14px; }
 .lists h2 { margin: 8px 11px 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
-.lists ul { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 1px; }
+.lists ul { list-style: none; margin: 0 0 6px; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; }
 .lists li { display: flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 4px 0 11px; border-radius: 8px; cursor: pointer; font-size: 13.5px; }
 .lists li:hover { background: var(--hover); }
 .lists li.active { background: var(--active); }
 .lists li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lists li small { padding-right: 8px; color: var(--muted); font-size: 12px; }
-.lists li button { min-height: 26px; padding: 0 7px; border: 0; color: var(--muted); font-size: 12px; visibility: hidden; }
+.lists li button { flex-shrink: 0; min-height: 26px; padding: 0 6px; border: 0; color: var(--muted); font-size: 12px; visibility: hidden; }
+.lists li input { flex: 1; min-width: 0; min-height: 26px; padding: 0 6px; font-size: 13.5px; }
 .lists li:hover button { visibility: visible; }
 .foot { display: flex; align-items: center; gap: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
 .engine { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 8px; border: 0; border-radius: 8px; text-align: left; }
@@ -145,7 +156,9 @@ body.collapsed .chatview header { padding-left: 56px; }
 .cursor::after { content: "▍"; color: var(--muted); }
 .missing { color: var(--muted); font-size: 12px; }
 
-footer { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding: 8px 48px 14px; }
+footer { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; padding: 8px 48px 14px; position: relative; }
+.latest { position: absolute; top: -40px; width: 34px; height: 34px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: var(--panel); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.latest svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .composer { width: 100%; max-width: 720px; padding: 14px 12px 10px 18px; border: 1px solid var(--line); border-radius: 20px; background: var(--panel); box-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 6px 24px rgba(0, 0, 0, .05); }
 footer.dragging .composer { border-color: var(--accent); }
 #input { display: block; width: 100%; min-height: 26px; max-height: 40vh; padding: 0; border: 0; border-radius: 0; background: transparent; outline: 0; resize: none; font-size: 16px; line-height: 1.5; }
@@ -283,3 +296,4 @@ h1 { margin: 0; font: 400 32px/1.2 var(--serif); letter-spacing: -.015em; }
   #options { grid-template-columns: minmax(0, 1fr); }
   #welcome { font-size: 30px; }
 }
+h2.group { margin: 22px 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }

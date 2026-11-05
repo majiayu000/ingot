@@ -74,7 +74,12 @@
       if (!native({ action: "chooseFolder" })) message = "Set INGOT_MODELS or use the Mac app to change the folder.", render();
     });
     const contexts = [[0, "Automatic for this Mac"], [4096, "4,096"], [8192, "8,192"], [16384, "16,384"], [32768, "32,768"], [65536, "65,536"]];
+    const theme = element("select");
+    theme.append(new Option("Match system", "system"), new Option("Light", "light"), new Option("Dark", "dark"));
+    theme.value = load("theme", "system");
+    theme.onchange = () => { save("theme", theme.value, true); applyTheme(theme.value); };
     const general = [element("h2", "", "General"),
+      row("Appearance", "", theme),
       row("Default model", "Used for new chats and connected apps", picker("default_model", [["", "Most recent"], ...models.map((m) => [m, titles[m] || m])])),
       row("Context length", "Longer context needs more memory", picker("context", contexts)),
       row("Unload after idle", "Frees memory when you stop chatting", picker("keep_alive", [["5m", "5 minutes"], ["10m", "10 minutes"], ["1h", "1 hour"], ["-1", "Never"]])),
@@ -139,6 +144,8 @@
   async function openSettings() {
     try {
       settings = await json("/api/settings");
+      // The model folder shown when none is set comes from the catalog.
+      if (!settings.models_dir && !catalog) await catalogReady().catch(() => null);
       models = (await json("/v1/models")).data.map((m) => m.id);
       if (settings.check_updates) {
         json("/api/update").then((u) => {

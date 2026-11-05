@@ -78,7 +78,7 @@ pub(super) fn catalog(shared: &Shared) -> Result<Value, ApiError> {
             "summary": format!("Custom model based on {}", model.base),
             "download_bytes": 0, "present": true, "fit": "custom", "context": null,
             "memory_gib": null, "recommended": false, "loaded": active,
-            "downloading": downloading, "custom": true,
+            "downloading": downloading, "custom": true, "base": model.base,
         }));
     }
     Ok(json!({
