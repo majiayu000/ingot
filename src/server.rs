@@ -56,7 +56,7 @@ const MAX_PENDING: usize = 8;
 const MAX_EVENTS: usize = 8;
 const IO_TIMEOUT: Duration = Duration::from_secs(30);
 /// The app's page and its parts, served as they are.
-const WEB: [(&str, &str, &str); 8] = [
+const WEB: [(&str, &str, &str); 9] = [
     (
         "/",
         "text/html; charset=utf-8",
@@ -66,6 +66,11 @@ const WEB: [(&str, &str, &str); 8] = [
         "/style.css",
         "text/css; charset=utf-8",
         include_str!("web/style.css"),
+    ),
+    (
+        "/markdown.js",
+        "text/javascript; charset=utf-8",
+        include_str!("web/markdown.js"),
     ),
     (
         "/chat.js",

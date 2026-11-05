@@ -305,3 +305,8 @@ h2.group { margin: 22px 0 4px; font-size: 13px; font-weight: 600; color: var(--m
 #first { display: none; }
 body.nomodel #first { display: flex; }
 #log mark { background: color-mix(in srgb, var(--accent) 30%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+.tok-k { color: var(--accent-ink); font-weight: 600; }
+.tok-s { color: var(--good); }
+.tok-c { color: var(--muted); font-style: italic; }
+.tok-n { color: var(--bad); }
+.versions { display: inline-flex; align-items: center; gap: 2px; margin-right: 6px; color: var(--muted); font-size: 12px; }

@@ -8,6 +8,33 @@ function applyTheme(theme) {
 }
 applyTheme(load("theme", "system"));
 
+// Answer versions from Retry: m.versions holds the others and m.at is the
+// shown one's place among all of them.
+function snapshot(m) { return { content: m.content, reasoning: m.reasoning || "", meta: m.meta || "", format: m.format }; }
+function allVersions(m) {
+  const others = m.versions || [];
+  const at = m.at === undefined ? others.length : m.at;
+  return [...others.slice(0, at), snapshot(m), ...others.slice(at)];
+}
+function versionSwitcher(m) {
+  const all = allVersions(m), at = m.at ?? m.versions.length;
+  const show = (place) => {
+    const list = allVersions(m);
+    Object.assign(m, list[place]);
+    m.versions = list.filter((_, i) => i !== place);
+    m.at = place;
+    persist();
+    render();
+  };
+  const box = element("span", "versions");
+  const back = action("‹", "Previous answer", () => show(at - 1));
+  const next = action("›", "Next answer", () => show(at + 1));
+  back.disabled = at === 0;
+  next.disabled = at === all.length - 1;
+  box.append(back, element("span", "", `${at + 1} / ${all.length}`), next);
+  return box;
+}
+
 // Opening a search result marks the matches and scrolls to the first.
 function highlightMatches(text) {
   const needle = text.toLowerCase();
@@ -106,6 +133,8 @@ function renameChat(c, title) {
       else {
         const s = await response.json();
         const m = s.memory;
+        // Friendly names come from the catalog, which may not be loaded yet.
+        if (s.model && !titles[s.model] && !catalog) await catalogReady().catch(() => null);
         if (!s.model) showEngine("No model loaded", "Loads when you chat", false);
         else {
           const memory = m.recommended_working_set_bytes
