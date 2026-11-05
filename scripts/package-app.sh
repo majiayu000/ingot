@@ -7,9 +7,10 @@
 #   INGOT_SIGN_ID="Developer ID Application: NAME (TEAM)"   sign the app and image
 #   INGOT_NOTARY_PROFILE=PROFILE   notarize with `notarytool store-credentials` PROFILE
 #   INGOT_NOTARY_KEYCHAIN=PATH     the keychain holding PROFILE, if it was stored with --keychain
-# A signed build also writes dist/appcast.xml for Sparkle, signed with the
-# EdDSA key that `generate_keys --account ingot` keeps in the login keychain.
-# Attach both files to the GitHub release.
+# A signed build also writes dist/appcast.xml for Sparkle. Attach both files to
+# the GitHub release. Its EdDSA key is the one `generate_keys --account ingot`
+# keeps in the login keychain, or
+#   INGOT_SPARKLE_KEY=FILE   the same key exported with `generate_keys -x FILE`
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -122,8 +123,12 @@ if [ -n "${INGOT_NOTARY_PROFILE:-}" ]; then
   xcrun stapler staple "$dmg"
 fi
 if [ "$sign_id" != - ]; then
-  "$sparkle/bin/generate_appcast" --account ingot \
+  key=(--account ingot)
+  [ -z "${INGOT_SPARKLE_KEY:-}" ] || key=(--ed-key-file "$INGOT_SPARKLE_KEY")
+  "$sparkle/bin/generate_appcast" "${key[@]}" \
     --download-url-prefix "https://github.com/majiayu000/ingot/releases/download/v$version/" \
     --link "https://github.com/majiayu000/ingot/releases/tag/v$version" "$dist"
+  # generate_appcast exits 0 even when it cannot sign.
+  grep -q 'sparkle:edSignature=' "$appcast" 2>/dev/null || { echo "appcast.xml was not written or not signed" >&2; exit 1; }
 fi
 shasum -a 256 "$dmg"
