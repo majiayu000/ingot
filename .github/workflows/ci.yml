@@ -48,3 +48,10 @@ jobs:
         continue-on-error: true
         run: >-
           cargo test --release --locked --lib -- 'metal::' 'weights::tests::'
+
+  app:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Mac app shell
+        run: swift build -c release --package-path app

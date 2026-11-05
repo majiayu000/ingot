@@ -26,6 +26,22 @@ After a release is published, unpack its archive and run `./ingot run`.
 The root `setup-macos.sh` / `run-macos.sh` scripts belong to the llama.cpp
 comparison engine; they do not install or launch the native Ingot app.
 
+### Mac app
+
+`scripts/package-app.sh` builds `dist/Ingot.app` and `dist/Ingot-VERSION.dmg`
+with the Command Line Tools; Xcode is not needed. The app in `app/` is a small
+SwiftUI shell: it runs the bundled `ingot serve` on port 11435 or the next free
+one, shows the page that server hosts, and adds a menu bar item. It reads
+`~/Library/Application Support/Ingot/settings.json` when it starts the engine,
+and the page asks it to restart the engine after a server setting changes.
+
+The script uses Finder to lay out the disk image window, so the first run asks
+for permission to control Finder.
+
+Without settings the app is signed ad hoc. For a public download, set
+`INGOT_SIGN_ID` to a Developer ID identity and `INGOT_NOTARY_PROFILE` to a
+`notarytool store-credentials` profile.
+
 ## Validation
 
 ```sh

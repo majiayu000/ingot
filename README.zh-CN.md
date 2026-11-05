@@ -13,34 +13,42 @@ Ingot 是一个 Rust 程序，使用自己的 Metal kernel，运行时不依赖 
 
 ## 开始使用
 
-需要 Apple Silicon Mac、macOS 15 及以上、Rust 1.88 及以上和 Xcode 命令行工具。
-安装脚本会逐项检查。目前还没有预编译版本。
+需要 Apple Silicon Mac 和 macOS 15 及以上。目前还没有预编译版本，需要先用 Rust 1.88 及以上和
+Xcode 命令行工具构建：
 
 ```sh
 git clone https://github.com/majiayu000/ingot.git
 cd ingot
-scripts/install.sh
-ingot
+scripts/package-app.sh       # 生成 Mac 应用和磁盘映像，在 dist/ 目录
+scripts/install.sh           # 或者只安装命令行工具
 ```
 
-选择模型，确认下载，就可以开始对话。你的对话内容只留在自己的 Mac 上。
+**Mac 应用：** 打开 `dist/Ingot-0.1.0.dmg`，把 Ingot 拖到“应用程序”。打开后会看到按这台 Mac
+评估过的模型列表，选一个，等下载完成，就可以开始对话。聊天、项目分组、PDF 和文本附件、自定义模型、
+设置都在应用里。Ingot 会留在菜单栏，方便其他应用连接。
+
+**命令行：** 运行 `ingot`，选择模型并确认下载。
+
+你的对话内容只留在自己的 Mac 上。
 
 ## 功能
 
-- **随处对话：** 可以在终端使用；运行 `ingot serve` 后，也可以打开内置网页
+- **随处对话：** 可以在 Mac 应用和终端使用；运行 `ingot serve` 后，也可以打开内置网页
   <http://127.0.0.1:8080/>。
-- **接入常用工具：** 提供兼容 OpenAI 和 Anthropic 的 API，可连接 Open WebUI、
-  Cursor、Claude Code 等客户端。
+- **接入常用工具：** 提供兼容 OpenAI、Anthropic 和 Ollama 的 API，可连接 Open WebUI、
+  Cursor、Claude Code，以及任何带 Ollama 设置的应用。
 - **运行超大模型：** 支持 Qwen3.8-Flash-Next 和 GLM-5.3-Flash，内存放不下的专家层从
   SSD 流式读取。
 - **运行常见 GGUF 模型：** 支持 Llama、Qwen2、Qwen3、Qwen3-MoE、Gemma 3、Gemma 4
   和 Phi-3 系列文件，可从内置列表下载，也可直接从 Hugging Face 下载。
+- **发现和定制模型：** 在应用里搜索 Hugging Face，保存带自己提示词和参数的自定义模型，也可以导入 Modelfile。
+- **启动你的工具：** `ingot launch claude`、`codex` 或 `opencode`。
 - **细节齐全：** 工具调用、思考等级、图片输入（Qwen3.8）、API 密钥、Prometheus
   指标、后台服务，以及可续传并经 SHA-256 校验的下载。
 
 ## 选哪个模型
 
-运行 `ingot` 后直接按回车。它会检查这台 Mac 的内存和可用磁盘空间，推荐放得下的最佳模型，
+打开应用，或运行 `ingot` 后直接按回车。Ingot 会检查这台 Mac 的内存和可用磁盘空间，推荐放得下的最佳模型，
 并选好上下文长度。已下载且放得下的模型会优先使用。
 
 举例，下面是上下文为 8192 token 时各模型需要的内存：
@@ -56,6 +64,9 @@ ingot
 
 ```sh
 ingot models                # 查看全部模型，以及哪些放得下
+ingot list                  # 查看已有模型
+ingot ps                    # 查看已加载的模型
+ingot stop qwen3-8b-q4_k_m  # 立即释放它的内存
 ingot run qwen3-8b-q4_k_m   # 跳过菜单
 ```
 
@@ -71,8 +82,10 @@ ingot serve qwen3-8b-q4_k_m
 | --- | --- |
 | 浏览器 | 打开 <http://127.0.0.1:8080/> |
 | Open WebUI、Cursor 等 OpenAI 客户端 | Base URL 填 `http://127.0.0.1:8080/v1`，模型名从 `/v1/models` 获取 |
+| 带 Ollama 设置的应用 | 服务器填 `http://127.0.0.1:8080` |
 | Claude Code | [配置指南](docs/QUICKSTART.md#claude-code) |
 
+Mac 应用会自动在 11435 端口启动这个服务，可以在菜单栏图标里选 **Copy API Address** 复制地址。
 服务默认只监听本机。要从手机或其他电脑访问，请看
 [远程访问](docs/REFERENCE.md#remote-access-and-api-keys)。
 

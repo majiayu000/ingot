@@ -1,9 +1,10 @@
 //! Model names a server answers to: the one `serve MODEL` loaded, or every
 //! complete local main model when `serve` runs without MODEL.
-use crate::models::{self, Manifest};
+use crate::models::{self, Manifest, custom};
 use crate::openai::ApiError;
 use crate::{Result, invalid};
 use serde_json::Value;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard};
 
@@ -21,6 +22,8 @@ pub(crate) struct Local {
     ids: Mutex<Vec<String>>,
     /// Id of the resident model; the engine worker updates it.
     pub(crate) loaded: Arc<Mutex<Option<String>>>,
+    /// Models being downloaded.
+    pub(crate) pulling: Mutex<HashSet<String>>,
 }
 
 pub(crate) fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -50,6 +53,7 @@ impl Local {
             default: None,
             ids: Mutex::new(Vec::new()),
             loaded: Arc::default(),
+            pulling: Mutex::default(),
         };
         let ids = local.scan()?;
         if let Some(name) = default {
@@ -67,8 +71,12 @@ impl Local {
     pub(crate) fn root(&self) -> &std::path::Path {
         &self.root
     }
+    pub(crate) fn manifest(&self) -> &Manifest {
+        &self.manifest
+    }
     fn scan(&self) -> Result<Vec<String>> {
-        let ids = models::local_main(&self.manifest, &self.root)?;
+        let mut ids = models::local_main(&self.manifest, &self.root)?;
+        ids.extend(custom::list(&self.root)?.into_iter().map(|c| c.name));
         *lock(&self.ids) = ids.clone();
         Ok(ids)
     }
@@ -88,13 +96,20 @@ impl Local {
         Ok(ids)
     }
     /// The local id `name` refers to; rescans once when it is not known yet.
-    fn find(&self, name: &str) -> std::result::Result<Option<String>, ApiError> {
+    pub(crate) fn find(&self, name: &str) -> std::result::Result<Option<String>, ApiError> {
         let known = lock(&self.ids).iter().find(|id| matches(id, name)).cloned();
         if known.is_some() {
             return Ok(known);
         }
         let ids = self.scan().map_err(scan_error)?;
         Ok(ids.into_iter().find(|id| matches(id, name)))
+    }
+    /// The weights behind `id`: a custom model's base, else `id`.
+    pub(crate) fn base(&self, id: &str) -> String {
+        match custom::load(&self.root, id) {
+            Ok(Some(custom)) => custom.base,
+            _ => id.to_owned(),
+        }
     }
     /// Model for a request that names none or an unknown one: the resident
     /// model, then `--default`, then the first local model.
@@ -120,11 +135,11 @@ impl Local {
         if !name.is_empty() {
             eprintln!("ingot serve: model '{name}' is not a local model; using {id}");
         }
-        Ok(id)
+        Ok(self.base(&id))
     }
 }
 
-fn scan_error(e: std::io::Error) -> ApiError {
+pub(crate) fn scan_error(e: std::io::Error) -> ApiError {
     ApiError::new(500, format!("cannot list local models: {e}"))
 }
 
@@ -137,12 +152,22 @@ fn describe(ids: &[String]) -> String {
 }
 
 impl Served {
+    /// The local model library; a server for one fixed model has none.
+    pub(crate) fn local(&self) -> std::result::Result<&Local, ApiError> {
+        match self {
+            Self::Local(local) => Ok(local),
+            Self::Fixed(_) => Err(ApiError::new(
+                400,
+                "managing models needs `ingot serve` without a MODEL argument",
+            )),
+        }
+    }
     /// A vision projector is configured (`serve MODEL --mmproj`) or, for local
     /// models, an `mmproj*.gguf` lies beside the model file.
     pub(crate) fn vision(&self, id: &str, fixed: bool) -> bool {
         match self {
             Self::Fixed(_) => fixed,
-            Self::Local(local) => models::resolve(&local.manifest, id, &local.root)
+            Self::Local(local) => models::resolve(&local.manifest, &local.base(id), &local.root)
                 .ok()
                 .and_then(|r| crate::engine::projector_for(&r.model, None).ok().flatten())
                 .is_some(),
@@ -188,9 +213,28 @@ impl Served {
         match self {
             Self::Fixed(id) => Ok(id.clone()),
             Self::Local(local) => match local.find(name)? {
-                Some(id) => Ok(id),
+                Some(id) => Ok(local.base(&id)),
                 None => local.fallback(name),
             },
+        }
+    }
+    /// An OpenAI body with the custom model it names, if any, applied.
+    pub(crate) fn customized(&self, body: &[u8]) -> std::result::Result<Vec<u8>, ApiError> {
+        let Self::Local(local) = self else {
+            return Ok(body.to_vec());
+        };
+        let Ok(mut value) = serde_json::from_slice::<Value>(body) else {
+            return Ok(body.to_vec());
+        };
+        let name = value.get("model").and_then(Value::as_str).unwrap_or("");
+        let found =
+            custom::load(&local.root, name).map_err(|e| ApiError::new(500, e.to_string()))?;
+        match found {
+            Some(custom) => {
+                custom::apply(&custom, &mut value);
+                Ok(value.to_string().into_bytes())
+            }
+            None => Ok(body.to_vec()),
         }
     }
 }

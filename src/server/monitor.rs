@@ -121,6 +121,8 @@ pub(crate) struct Monitor {
     queued: AtomicUsize,
     /// Tokens generated so far by the active request.
     generated: AtomicUsize,
+    /// Context of the loaded model.
+    context: AtomicUsize,
     thinking: &'static str,
     state: Mutex<State>,
 }
@@ -138,6 +140,7 @@ impl Monitor {
             started: Instant::now(),
             loaded,
             queued: AtomicUsize::new(0),
+            context: AtomicUsize::new(0),
             generated: AtomicUsize::new(0),
             thinking: thinking.map_or("model default", |t| t.name()),
             state: Mutex::default(),
@@ -184,6 +187,9 @@ impl Monitor {
         s.recent.push_back(r);
     }
     /// A model was loaded with room for `capacity` kept sessions (0: unloaded).
+    pub(crate) fn context(&self, tokens: usize) {
+        self.context.store(tokens, Ordering::Relaxed);
+    }
     pub(crate) fn sessions(&self, capacity: usize) {
         let mut s = lock(&self.state);
         s.sessions = (0, capacity);
@@ -204,6 +210,7 @@ impl Monitor {
         });
         json!({
             "model": loaded,
+            "context": self.context.load(Ordering::Relaxed),
             "uptime_seconds": self.started.elapsed().as_secs(),
             "thinking_default": self.thinking,
             "active": active,

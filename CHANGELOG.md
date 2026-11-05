@@ -3,7 +3,7 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-11-05
 
 First public release.
 
@@ -24,6 +24,20 @@ First public release.
   gate/up/SwiGLU expert kernels.
 - Single-prefix cache across requests (`--prefix-cache`).
 - Per-kernel GPU timing via `INGOT_KERNEL_PROFILE`.
+- Mac app (`scripts/package-app.sh`): disk image, native window and menu bar
+  panel, first-run model list, downloads with progress, crash recovery, system
+  proxy support, start at login and automatic updates (Sparkle, EdDSA-signed
+  appcast on the GitHub release). The app and disk image are notarized.
+- App pages: Hugging Face search, model details, custom models, Connect apps and
+  Settings. Chat search, projects, and PDF and text attachments. Chats are stored
+  in a file on this Mac. The interface follows the system's light or dark mode.
+- `ingot list`, `ps`, `show`, `stop`, `rm`, `cp`, `create` and `launch`.
+- `min_p`, `repeat_penalty`, `num_ctx` and `keep_alive` per request, preloading
+  and immediate unloading, `GET /v1/models/{id}` and `POST /v1/responses`.
+- Templates without a system role, such as Phi-3's, no longer drop system prompts.
+- Ollama-compatible API under `/api/`, checked with the real `ollama` client.
+- Requests from other sites that would change state are refused with 403.
+- `ingot serve` without MODEL picks a context that fits each listed model.
 - `ingot run` recommends the best model for the Mac from its Metal working set and
   free disk, picks a context that fits, and marks models that will not run well.
 - When CONTEXT is omitted, it stops at the limit declared by the GGUF file.

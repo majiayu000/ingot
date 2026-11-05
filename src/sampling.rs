@@ -21,14 +21,22 @@ pub struct Sampling {
     pub top_p: f32,
     /// Number of highest-logit candidates kept; 0 disables the filter.
     pub top_k: usize,
+    /// Drops tokens below this share of the best token's probability; 0 disables.
+    pub min_p: f32,
+    /// Penalty on recently used tokens; 1 disables.
+    pub repeat_penalty: f32,
     pub seed: u64,
 }
+/// Tokens `repeat_penalty` looks back over.
+const REPEAT_WINDOW: usize = 64;
 impl Default for Sampling {
     fn default() -> Self {
         Self {
             temperature: 0.,
             top_p: 1.,
             top_k: 0,
+            min_p: 0.,
+            repeat_penalty: 1.,
             seed: 0,
         }
     }
@@ -37,12 +45,22 @@ impl Sampling {
     pub fn is_greedy(&self) -> bool {
         self.temperature == 0.
     }
+    /// Tokens are the plain argmax, so MTP can verify them without CPU logits.
+    pub fn needs_no_sampler(&self) -> bool {
+        self.is_greedy() && self.repeat_penalty == 1.
+    }
     pub fn validate(&self) -> Result<()> {
         if !(0. ..=2.).contains(&self.temperature) {
             return Err(invalid("temperature must be between 0 and 2"));
         }
         if !(self.top_p > 0. && self.top_p <= 1.) {
             return Err(invalid("top_p must be greater than 0 and at most 1"));
+        }
+        if !(0. ..1.).contains(&self.min_p) {
+            return Err(invalid("min_p must be at least 0 and below 1"));
+        }
+        if !(self.repeat_penalty > 0. && self.repeat_penalty.is_finite()) {
+            return Err(invalid("repeat_penalty must be greater than 0"));
         }
         Ok(())
     }
@@ -52,6 +70,8 @@ impl Sampling {
 pub struct Sampler {
     config: Sampling,
     state: [u64; 4],
+    /// Latest tokens, for `repeat_penalty`.
+    recent: Vec<u32>,
 }
 impl Sampler {
     pub fn new(config: Sampling) -> Result<Self> {
@@ -65,7 +85,11 @@ impl Sampler {
             z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
             *s = z ^ (z >> 31);
         }
-        Ok(Self { config, state })
+        Ok(Self {
+            config,
+            state,
+            recent: Vec::new(),
+        })
     }
     fn next_u64(&mut self) -> u64 {
         let s = &mut self.state;
@@ -83,6 +107,12 @@ impl Sampler {
     fn uniform(&mut self) -> f64 {
         (self.next_u64() >> 11) as f64 * (1.0 / (1u64 << 53) as f64)
     }
+    /// Records tokens that count as already used, such as the prompt.
+    pub fn remember(&mut self, tokens: &[u32]) {
+        self.recent.extend_from_slice(tokens);
+        let extra = self.recent.len().saturating_sub(REPEAT_WINDOW);
+        self.recent.drain(..extra);
+    }
     pub fn sample(&mut self, logits: &[f32]) -> Result<u32> {
         if logits.is_empty() {
             return Err(invalid("empty logits"));
@@ -90,6 +120,29 @@ impl Sampler {
         if logits.iter().any(|v| !v.is_finite()) {
             return Err(invalid("non-finite logits"));
         }
+        let penalty = self.config.repeat_penalty;
+        let id = if penalty == 1. {
+            self.pick(logits)?
+        } else {
+            let mut adjusted = logits.to_vec();
+            let mut seen = self.recent.clone();
+            seen.sort_unstable();
+            seen.dedup();
+            for id in seen {
+                if let Some(logit) = adjusted.get_mut(id as usize) {
+                    *logit = if *logit > 0. {
+                        *logit / penalty
+                    } else {
+                        *logit * penalty
+                    };
+                }
+            }
+            self.pick(&adjusted)?
+        };
+        self.remember(&[id]);
+        Ok(id)
+    }
+    fn pick(&mut self, logits: &[f32]) -> Result<u32> {
         let c = self.config;
         // Highest logit first; ties prefer the lower token ID.
         let order = |a: &u32, b: &u32| {
@@ -118,6 +171,13 @@ impl Sampler {
             .iter()
             .map(|&i| ((logits[i as usize] as f64 - max) / temperature).exp())
             .collect();
+        if c.min_p > 0. {
+            // Each weight is already relative to the best token.
+            let floor = c.min_p as f64;
+            let kept: Vec<usize> = (0..ids.len()).filter(|&i| weights[i] >= floor).collect();
+            ids = kept.iter().map(|&i| ids[i]).collect();
+            weights = kept.iter().map(|&i| weights[i]).collect();
+        }
         let total: f64 = weights.iter().sum();
         if sorted {
             // Keep the smallest high-probability prefix whose mass reaches top_p.
@@ -153,6 +213,7 @@ mod tests {
             top_p,
             top_k,
             seed,
+            ..Sampling::default()
         }
     }
     fn draw(c: Sampling, logits: &[f32], n: usize) -> Vec<u32> {
@@ -169,6 +230,30 @@ mod tests {
         // Pin the generator so an accidental algorithm change is caught.
         let mut s = Sampler::new(config(1., 1., 0, 0)).unwrap();
         assert_eq!(s.next_u64(), 0x99ec_5f36_cb75_f2b4);
+    }
+    #[test]
+    fn min_p_drops_unlikely_tokens() {
+        let mut c = config(1., 1., 0, 3);
+        c.min_p = 0.5;
+        // Token 1 has about 4.5% of token 0's probability.
+        assert!(draw(c, &[4., 1., 3.5], 100).iter().all(|id| *id != 1));
+        c.min_p = 1.;
+        assert!(Sampler::new(c).is_err());
+    }
+    #[test]
+    fn repeat_penalty_lowers_recent_tokens() {
+        let mut c = config(0., 1., 0, 1);
+        c.repeat_penalty = 2.;
+        assert!(!c.needs_no_sampler());
+        let mut s = Sampler::new(c).unwrap();
+        s.remember(&[0]);
+        // 5 / 2 is below 3, and a negative logit moves further down.
+        assert_eq!(s.sample(&[5., 3., -9.]).unwrap(), 1);
+        assert_eq!(s.sample(&[5., 3., 4.]).unwrap(), 2);
+        s.remember(&vec![9; 100]);
+        assert_eq!(s.recent.len(), REPEAT_WINDOW);
+        c.repeat_penalty = 0.;
+        assert!(Sampler::new(c).is_err());
     }
     #[test]
     fn greedy_and_filters() {

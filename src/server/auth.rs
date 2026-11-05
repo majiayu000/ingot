@@ -44,9 +44,10 @@ fn same(a: &str, b: &str) -> bool {
     diff == 0
 }
 
-/// Paths served without a key: the chat page and its script.
+/// Paths served without a key: the app's page and the checks that a server is up.
 pub(crate) fn public(method: &str, path: &str) -> bool {
-    method == "GET" && matches!(path, "/" | "/monitor.js")
+    method == "GET" && (super::is_web(path) || path == "/api/version")
+        || method == "HEAD" && path == "/"
 }
 
 /// 401 body in the shape of the API the path belongs to.

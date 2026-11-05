@@ -35,7 +35,8 @@ fn parses_chat_request() {
             temperature: 0.7,
             top_p: 0.9,
             top_k: 20,
-            seed: 42
+            seed: 42,
+            ..Sampling::default()
         }
     );
     assert_eq!(r.stop, ["END"]);

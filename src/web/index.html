@@ -3,794 +3,95 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ingot chat</title>
-<style>
-:root {
-  color-scheme: light;
-  --bg: #f7f7f8; --panel: #ffffff; --side: #efeff2; --text: #1d1d1f; --muted: #6e6e73;
-  --border: #d9d9de; --user: #e8f0fe; --accent: #0a66d8; --code: #f0f0f3; --hover: #e4e4e9;
-  --error: #c62828;
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #18181b; --panel: #232327; --side: #1f1f23; --text: #ececf1; --muted: #9a9aa3;
-  --border: #3a3a40; --user: #26364d; --accent: #5ea0ff; --code: #2d2d33; --hover: #303036;
-  --error: #ff7b72;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #18181b; --panel: #232327; --side: #1f1f23; --text: #ececf1; --muted: #9a9aa3;
-    --border: #3a3a40; --user: #26364d; --accent: #5ea0ff; --code: #2d2d33; --hover: #303036;
-    --error: #ff7b72;
-  }
-}
-* { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
-body {
-  background: var(--bg); color: var(--text);
-  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  display: flex; overflow: hidden;
-}
-button, select, textarea, input {
-  font: inherit; color: var(--text); background: var(--panel);
-  border: 1px solid var(--border); border-radius: 8px;
-}
-button { font-size: 14px; padding: 7px 12px; cursor: pointer; }
-button:hover:not(:disabled) { background: var(--hover); }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-button.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.1); }
-button:disabled { opacity: .5; cursor: default; }
-button.icon { border: none; background: transparent; padding: 2px 6px; font-size: 12px; color: var(--muted); }
-select { padding: 6px 8px; font-size: 13px; max-width: 100%; }
-textarea, input { padding: 8px 10px; background: var(--bg); }
-
-/* Sidebar: conversation list */
-aside {
-  width: 260px; flex-shrink: 0; background: var(--side); border-right: 1px solid var(--border);
-  display: flex; flex-direction: column; min-height: 0;
-}
-aside .top { padding: 12px; display: flex; gap: 8px; }
-aside .top button { flex: 1; }
-#chats { list-style: none; margin: 0; padding: 0 8px 8px; overflow-y: auto; flex: 1; }
-#chats li {
-  display: flex; align-items: center; gap: 4px; border-radius: 8px; padding: 6px 8px;
-  cursor: pointer; font-size: 14px;
-}
-#chats li:hover { background: var(--hover); }
-#chats li.active { background: var(--hover); font-weight: 600; }
-#chats li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#chats li button { visibility: hidden; }
-#chats li:hover button, #chats li.active button { visibility: visible; }
-aside .bottom { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
-
-/* Main column */
-.column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-header {
-  display: flex; align-items: center; gap: 10px; padding: 8px 16px;
-  border-bottom: 1px solid var(--border); background: var(--panel); flex-wrap: wrap;
-}
-header h1 { font-size: 16px; margin: 0; white-space: nowrap; }
-header .spacer { flex: 1; }
-#menu { display: none; }
-details.settings { border-bottom: 1px solid var(--border); background: var(--panel); padding: 0 16px; }
-details.settings summary { cursor: pointer; padding: 8px 0; color: var(--muted); font-size: 13px; }
-.settings-body { display: grid; gap: 8px; padding-bottom: 12px; max-width: 860px; }
-.settings-body label { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
-.settings-body input[type=number] { width: 90px; }
-#system { width: 100%; min-height: 54px; resize: vertical; }
-main { flex: 1; overflow-y: auto; padding: 16px; }
-.log { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
-.msg { padding: 10px 14px; border-radius: 12px; overflow-wrap: anywhere; position: relative; }
-.msg.user { background: var(--user); align-self: flex-end; max-width: 85%; }
-.msg.user .text { white-space: pre-wrap; }
-.msg.assistant { background: var(--panel); border: 1px solid var(--border); }
-.msg.error { color: var(--error); border: 1px solid var(--error); background: transparent; white-space: pre-wrap; }
-.msg .actions { display: flex; gap: 2px; justify-content: flex-end; margin: 4px -6px -6px 0; }
-.msg .meta { color: var(--muted); font-size: 12px; flex: 1; align-self: center; }
-.msg details.thinking { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
-.msg details.thinking div { white-space: pre-wrap; border-left: 2px solid var(--border); padding-left: 8px; }
-.empty { color: var(--muted); text-align: center; margin-top: 18vh; }
-.md p { margin: 0 0 8px; }
-.md > :last-child { margin-bottom: 0; }
-.md .codeblock { margin: 6px 0 10px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-.md .codebar { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px 2px 10px; background: var(--code); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); }
-.md pre { margin: 0; background: var(--code); padding: 10px; overflow-x: auto; }
-.md code { background: var(--code); padding: 1px 4px; border-radius: 4px; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
-.md pre code { padding: 0; background: none; }
-.md h1, .md h2, .md h3, .md h4 { margin: 10px 0 6px; line-height: 1.3; }
-.md h1 { font-size: 20px; } .md h2 { font-size: 18px; } .md h3, .md h4 { font-size: 16px; }
-.md ul, .md ol { margin: 4px 0 8px; padding-left: 22px; }
-.md blockquote { margin: 4px 0; padding-left: 10px; border-left: 3px solid var(--border); color: var(--muted); }
-.md table { border-collapse: collapse; margin: 6px 0 10px; display: block; overflow-x: auto; }
-.md th, .md td { border: 1px solid var(--border); padding: 4px 8px; }
-.md a { color: var(--accent); }
-.cursor::after { content: "▍"; color: var(--muted); }
-footer { border-top: 1px solid var(--border); background: var(--panel); padding: 12px 16px; }
-.composer { max-width: 860px; margin: 0 auto; display: flex; gap: 8px; align-items: flex-end; }
-#input { flex: 1; min-height: 44px; max-height: 40vh; resize: vertical; }
-#status { max-width: 860px; margin: 6px auto 0; color: var(--muted); font-size: 12px; min-height: 1em; }
-.tabs { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-.tabs button { border: none; border-radius: 0; padding: 5px 12px; }
-.tabs button[aria-pressed="true"] { background: var(--accent); color: #fff; }
-body.monitoring .chat-only { display: none !important; }
-#monitor { display: none; }
-.keybox { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .35); display: flex; align-items: center; justify-content: center; padding: 16px; }
-.keybox[hidden] { display: none; }
-.keybox form { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: grid; gap: 10px; width: min(380px, 100%); }
-.keybox form div { display: flex; gap: 8px; justify-content: flex-end; }
-body.monitoring #monitor { display: block; }
-.cards { max-width: 980px; margin: 0 auto 16px; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
-.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
-.card h3 { margin: 0 0 4px; font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-.card .big { font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
-.card .sub { color: var(--muted); font-size: 13px; }
-.bar { height: 6px; background: var(--code); border-radius: 3px; margin-top: 8px; overflow: hidden; }
-.bar div { height: 100%; background: var(--accent); }
-.recent { max-width: 980px; margin: 0 auto; overflow-x: auto; }
-.recent table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
-.recent th, .recent td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-.recent th:first-child, .recent td:first-child, .recent td.left, .recent th.left { text-align: left; }
-.recent th { color: var(--muted); font-weight: 500; }
-.thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
-.thumbs img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); display: block; }
-.msg .thumbs { margin-bottom: 6px; justify-content: flex-end; }
-.msg .thumbs img { width: auto; height: auto; max-width: min(240px, 100%); max-height: 240px; object-fit: contain; }
-.msg .thumbs .missing { color: var(--muted); font-size: 12px; }
-#attachments { max-width: 860px; margin: 0 auto 8px; }
-#attachments:empty { display: none; }
-#attachments .thumb { position: relative; }
-#attachments .thumb button { position: absolute; top: -6px; right: -6px; padding: 0 5px; border-radius: 50%; font-size: 11px; line-height: 16px; }
-footer.dragging { outline: 2px dashed var(--accent); outline-offset: -4px; }
-@media (max-width: 760px) {
-  aside { position: fixed; inset: 0 auto 0 0; z-index: 10; transform: translateX(-100%); transition: transform .2s; }
-  body.sidebar aside { transform: none; box-shadow: 0 0 24px rgba(0, 0, 0, .3); }
-  #menu { display: inline-block; }
-  header { padding: 8px 12px; gap: 8px; }
-  header h1 { display: none; }
-  #thinking { max-width: 40vw; }
-  header .spacer { display: none; }
-  #model { flex: 1; min-width: 0; }
-  main, footer { padding-left: 12px; padding-right: 12px; }
-}
-</style>
+<title>Ingot</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<aside>
-  <div class="top"><button id="new" title="Start a new conversation">+ New chat</button></div>
-  <ul id="chats"></ul>
-  <div class="bottom">
-    <label for="theme">Theme</label>
-    <select id="theme"><option value="">System</option><option value="light">Light</option><option value="dark">Dark</option></select>
+<div id="app">
+<aside class="rail">
+  <div class="brand">
+    <span><svg viewBox="0 0 24 24" aria-hidden="true"><path class="mark" d="M6 8h12l3 10H3L6 8Z"/><path class="mark-top" d="M6 8h12l1 3H5l1-3Z"/></svg>Ingot</span>
+    <button id="collapse" class="plain square" title="Hide sidebar" aria-label="Hide sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4ZM9 5v14"/></svg></button>
+  </div>
+  <button id="new" class="navrow"><span class="plus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span>New chat</button>
+  <nav class="mainnav" aria-label="Main">
+    <label class="navrow searchrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM20 20l-4-4"/></svg><span class="sr">Search chats</span><input id="search" type="search" placeholder="Search chats"></label>
+    <button data-go="models" class="navrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3ZM4 7.5l8 4.5 8-4.5M12 12v9"/></svg>Models</button>
+    <button data-go="connect" class="navrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7V3M15 7V3M6 7h12v4a6 6 0 0 1-12 0V7ZM12 17v4"/></svg>Connect apps</button>
+  </nav>
+  <div class="lists">
+    <h2 id="projects-title" hidden>Projects</h2>
+    <ul id="projects"></ul>
+    <h2 id="chats-title">Recents</h2>
+    <ul id="chats"></ul>
+  </div>
+  <div class="foot">
+    <button id="engine" data-go="monitor" class="engine" title="Monitor">
+      <span class="avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="mark" d="M6 8h12l3 10H3L6 8Z"/></svg></span>
+      <span class="who"><b id="engine-model">Ingot</b><small><span id="engine-dot" class="dot"></span><span id="engine-state">Starting…</span></small></span>
+    </button>
+    <button data-go="settings" class="square" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></button>
   </div>
 </aside>
 <div class="column">
-  <header>
-    <button id="menu" class="icon" title="Conversations" aria-label="Conversations">☰</button>
-    <h1>ingot</h1>
-    <select id="model" class="chat-only" title="Model" aria-label="Model"><option value="">Loading models…</option></select>
-    <select id="thinking" class="chat-only" title="Thinking (reasoning effort)" aria-label="Thinking">
-      <option value="">Thinking: default</option><option value="none">Thinking: off</option>
-      <option value="low">Thinking: low</option><option value="medium">Thinking: medium</option><option value="high">Thinking: high</option>
-    </select>
-    <span class="spacer"></span>
-    <div class="tabs" role="group" aria-label="View">
-      <button id="tab-chat" aria-pressed="true">Chat</button><button id="tab-monitor" aria-pressed="false">Monitor</button>
-    </div>
-    <button id="regenerate" class="chat-only" title="Generate the last answer again">Regenerate</button>
-  </header>
-  <details class="settings chat-only">
-    <summary>System prompt and sampling</summary>
-    <div class="settings-body">
-      <textarea id="system" placeholder="System prompt for this conversation (optional)"></textarea>
-      <div style="display:flex; gap:16px; flex-wrap:wrap">
-        <label>Temperature <input id="temperature" type="number" min="0" max="2" step="0.1" placeholder="0"></label>
-        <label>Max tokens <input id="max_tokens" type="number" min="1" step="1" placeholder="auto"></label>
+  <button id="expand" class="plain square" title="Show sidebar" aria-label="Show sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4ZM9 5v14"/></svg></button>
+  <section class="view chatview" data-for="chat">
+    <header>
+      <button id="menu" class="plain square" title="Conversations" aria-label="Conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <span id="chat-title"></span>
+    </header>
+    <main id="scroll"><div class="log" id="log"></div></main>
+    <footer>
+      <h1 id="welcome"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="mark" d="M6 8h12l3 10H3L6 8Z"/><path class="mark-top" d="M6 8h12l1 3H5l1-3Z"/></svg><span id="greeting">Hello</span></h1>
+      <div class="composer">
+        <div id="attachments" class="chips"></div>
+        <textarea id="input" rows="1" placeholder="How can I help you today?" aria-label="Message"></textarea>
+        <div class="line">
+          <button id="attach" class="square" title="Attach images, PDFs or text files" aria-label="Attach a file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+          <button id="options-toggle" class="square" title="Chat options" aria-label="Chat options" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4"/></svg></button>
+          <select id="thinking" class="pick" title="Thinking" aria-label="Thinking">
+            <option value="">Think: default</option><option value="none">Think: off</option><option value="low">Think: low</option><option value="medium">Think: medium</option><option value="high">Think: high</option>
+          </select>
+          <input id="file" type="file" multiple hidden>
+          <span class="spacer"></span>
+          <span id="context" hidden><span id="context-text"></span><span class="sr"><span id="context-bar"></span></span></span>
+          <select id="model" class="quiet" title="Model" aria-label="Model"><option value="">Loading…</option></select>
+          <button id="send" class="square" aria-label="Send"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+          <button id="stop" class="square" aria-label="Stop" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg></button>
+        </div>
+      </div>
+      <div id="options" hidden>
+        <label>Project <select id="project"></select></label>
+        <label>Temperature <input id="temperature" type="number" min="0" max="2" step="0.1" placeholder="Model default"></label>
+        <label>Max tokens <input id="max_tokens" type="number" min="1" step="1" placeholder="Automatic"></label>
+        <label class="wide">System prompt <textarea id="system" placeholder="Instructions for this conversation"></textarea></label>
         <label>Output <select id="format"><option value="">Text</option><option value="json">JSON object</option></select></label>
       </div>
-    </div>
-  </details>
-  <main id="scroll" class="chat-only"><div class="log" id="log"></div></main>
-  <main id="monitor"><div class="cards" id="cards"></div><div class="recent" id="recent"></div></main>
-  <footer class="chat-only">
-    <div id="attachments" class="thumbs"></div>
-    <div class="composer">
-      <button id="attach" title="Attach a PNG or JPEG image (you can also paste or drop one)" aria-label="Attach image">Image</button>
-      <input id="file" type="file" accept="image/png,image/jpeg,image/*" multiple hidden>
-      <textarea id="input" rows="2" placeholder="Message (Enter to send, Shift+Enter for a new line)"></textarea>
-      <button id="send" class="primary">Send</button>
-      <button id="stop" disabled>Stop</button>
-    </div>
-    <div id="status"></div>
-  </footer>
+      <div id="starters">
+        <button data-start="pdf"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7l-4-4ZM14 3v4h4"/></svg>Read a PDF</button>
+        <button data-start="Write a function that "><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4"/></svg>Write code</button>
+        <button data-start="Translate into English: "><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>Translate</button>
+        <button data-start="models"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3ZM4 7.5l8 4.5 8-4.5M12 12v9"/></svg>Pick a model</button>
+      </div>
+      <div id="status" role="status"></div>
+    </footer>
+  </section>
+  <section class="view page" data-for="models" id="library"></section>
+  <section class="view page" data-for="model" id="detail"></section>
+  <section class="view page" data-for="custom" id="custom"></section>
+  <section class="view page" data-for="monitor"><h1>Monitor</h1><div class="cards" id="cards"></div><div class="recent" id="recent"></div></section>
+  <section class="view page" data-for="connect" id="connect"></section>
+  <section class="view page" data-for="settings" id="preferences"></section>
+</div>
 </div>
 <div id="keybox" class="keybox" hidden>
   <form id="keyform"><label for="keyinput" id="keylabel"></label><input id="keyinput" type="password" autocomplete="off">
-    <div><button type="button" id="keycancel">Cancel</button><button class="primary">Save</button></div></form>
+    <div><button type="button" id="keycancel">Cancel</button><button class="gold">OK</button></div></form>
 </div>
-<script>
-"use strict";
-const $ = (id) => document.getElementById(id);
-const STORE = "ingot.chat.v1";
-
-// Storage can be missing or throw (private windows, blocked site data); the
-// page then works for this visit only and says so.
-let storageWarned = false;
-function load(key, fallback) {
-  try {
-    const raw = localStorage.getItem(STORE + "." + key);
-    return raw === null ? fallback : JSON.parse(raw);
-  } catch (e) {
-    return fallback;
-  }
-}
-function save(key, value, quiet) {
-  try {
-    localStorage.setItem(STORE + "." + key, JSON.stringify(value));
-    return true;
-  } catch (e) {
-    if (quiet) return false;
-    if (!storageWarned) {
-      storageWarned = true;
-      $("status").textContent = "Conversations cannot be saved in this browser (" + (e.name || "storage error") + "); they last until the page is closed.";
-    }
-  }
-}
-
-// Asked in the page: embedded browsers may not support window.prompt.
-function askKey(text) {
-  return new Promise((resolve) => {
-    $("keylabel").textContent = text;
-    $("keyinput").value = "";
-    $("keybox").hidden = false;
-    $("keyinput").focus();
-    const done = (value) => { $("keybox").hidden = true; resolve(value); };
-    $("keyform").onsubmit = (e) => { e.preventDefault(); done($("keyinput").value.trim()); };
-    $("keycancel").onclick = () => done("");
-  });
-}
-// With `serve --api-key` every API call needs the key: ask once, keep it.
-async function api(path, options = {}, ask = true) {
-  for (let attempt = 0; ; attempt++) {
-    const key = load("apiKey", "");
-    const headers = Object.assign({}, options.headers);
-    if (key) headers.Authorization = "Bearer " + key;
-    const response = await fetch(path, Object.assign({}, options, { headers }));
-    if (response.status !== 401 || !ask || attempt >= 2) return response;
-    const entered = await askKey(key ? "The API key was not accepted. API key:" : "This server requires an API key:");
-    if (!entered) return response;
-    save("apiKey", entered);
-  }
-}
-
-// chats: [{id, title, system, messages: [{role, content, images?, reasoning?, meta?, format?}], updated}]
-// images are data URLs; when storage is full they are kept for this visit only.
-let chats = load("chats", []);
-if (!Array.isArray(chats)) chats = [];
-let current = chats.find((c) => c.id === load("current", null)) || null;
-let controller = null;
-
-function withoutImages(c) {
-  return { ...c, messages: c.messages.map((m) => m.images ? { ...m, images: undefined, imagesDropped: m.images.length } : m) };
-}
-function persist() {
-  if (!save("chats", chats, true)) save("chats", chats.map(withoutImages));
-  save("current", current ? current.id : null);
-}
-function newChat() {
-  return { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: "New chat", system: "", messages: [], updated: Date.now() };
-}
-function chat() {
-  if (!current) {
-    current = newChat();
-    current.system = $("system").value;
-    chats.unshift(current);
-  }
-  return current;
-}
-
-// ---------- Markdown (everything is HTML-escaped before tags are added) ----------
-function escapeHtml(text) {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
-// Inline Markdown on already escaped text; only http(s) links are allowed.
-function inline(text) {
-  const codes = [];
-  text = text.replace(/`([^`\n]+)`/g, (_, c) => { codes.push(c); return "\u0000" + (codes.length - 1) + "\u0000"; });
-  text = text
-    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)"]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
-    .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
-    .replace(/(^|[^*\w])\*([^*\n]+)\*/g, "$1<em>$2</em>")
-    .replace(/~~([^~\n]+)~~/g, "<del>$1</del>");
-  return text.replace(/\u0000(\d+)\u0000/g, (_, i) => "<code>" + codes[i] + "</code>");
-}
-const cells = (row) => row.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((c) => c.trim());
-function markdown(source) {
-  const lines = escapeHtml(source).split("\n");
-  const out = [];
-  let paragraph = [], list = null;
-  const flush = () => {
-    if (paragraph.length) { out.push("<p>" + paragraph.map(inline).join("<br>") + "</p>"); paragraph = []; }
-    if (list) { out.push("<" + list.tag + ">" + list.items.map((i) => "<li>" + inline(i) + "</li>").join("") + "</" + list.tag + ">"); list = null; }
-  };
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const fence = line.match(/^\s*```\s*([\w+#.-]*)/);
-    if (fence) {
-      flush();
-      const code = [];
-      while (++i < lines.length && !/^\s*```\s*$/.test(lines[i])) code.push(lines[i]);
-      // The language is a word of [\w+#.-], so it is safe as text.
-      out.push('<div class="codeblock"><div class="codebar"><span>' + (fence[1] || "code") +
-        '</span><button class="icon copy-code">Copy</button></div><pre><code>' + code.join("\n") + "</code></pre></div>");
-      continue;
-    }
-    let m;
-    if (/^\s*\|.*\|\s*$/.test(line) && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|?\s*$/.test(lines[i + 1]) && lines[i + 1].includes("-")) {
-      flush();
-      const head = cells(line), rows = [];
-      i++;
-      while (i + 1 < lines.length && /^\s*\|.*\|\s*$/.test(lines[i + 1])) rows.push(cells(lines[++i]));
-      out.push("<table><tr>" + head.map((c) => "<th>" + inline(c) + "</th>").join("") + "</tr>" +
-        rows.map((r) => "<tr>" + r.map((c) => "<td>" + inline(c) + "</td>").join("") + "</tr>").join("") + "</table>");
-    } else if ((m = line.match(/^(#{1,4})\s+(.*)$/))) {
-      flush();
-      out.push("<h" + m[1].length + ">" + inline(m[2]) + "</h" + m[1].length + ">");
-    } else if ((m = line.match(/^\s*([-*+]|\d+[.)])\s+(.*)$/))) {
-      const tag = /\d/.test(m[1]) ? "ol" : "ul";
-      if (paragraph.length || (list && list.tag !== tag)) flush();
-      if (!list) list = { tag, items: [] };
-      list.items.push(m[2]);
-    } else if ((m = line.match(/^&gt;\s?(.*)$/))) {
-      flush();
-      out.push("<blockquote>" + inline(m[1]) + "</blockquote>");
-    } else if (!line.trim()) {
-      flush();
-    } else {
-      if (list) flush();
-      paragraph.push(line);
-    }
-  }
-  flush();
-  return out.join("");
-}
-
-// ---------- Rendering ----------
-function scrollDown() { const s = $("scroll"); s.scrollTop = s.scrollHeight; }
-
-async function copy(text, button) {
-  const label = button.textContent;
-  let ok = false;
-  try {
-    await navigator.clipboard.writeText(text);
-    ok = true;
-  } catch (e) {
-    // No async clipboard (plain http on a LAN address) or permission denied.
-    const area = document.createElement("textarea");
-    area.value = text;
-    area.style.cssText = "position:fixed;opacity:0";
-    document.body.append(area);
-    area.select();
-    try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
-    area.remove();
-  }
-  button.textContent = ok ? "Copied" : "Copy failed";
-  setTimeout(() => { button.textContent = label; }, 1200);
-}
-function action(label, title, onclick) {
-  const b = document.createElement("button");
-  b.className = "icon";
-  b.textContent = label;
-  b.title = title;
-  b.onclick = onclick;
-  return b;
-}
-function formatted(m) {
-  if (m.format !== "json") return m.content;
-  try { return "```json\n" + JSON.stringify(JSON.parse(m.content), null, 2) + "\n```"; } catch (e) { return m.content; }
-}
-
-function bubble(m, index, last) {
-  const div = document.createElement("div");
-  div.className = "msg " + m.role;
-  if (m.role === "error") {
-    div.textContent = m.content;
-    return div;
-  }
-  const actions = document.createElement("div");
-  actions.className = "actions";
-  if (m.role === "user") {
-    if ((m.images && m.images.length) || m.imagesDropped) {
-      const thumbs = document.createElement("div");
-      thumbs.className = "thumbs";
-      for (const url of m.images || []) {
-        const img = document.createElement("img");
-        img.src = url;
-        img.alt = "Attached image";
-        thumbs.append(img);
-      }
-      if (!m.images && m.imagesDropped) {
-        const missing = document.createElement("span");
-        missing.className = "missing";
-        missing.textContent = m.imagesDropped + " image(s) not saved in this browser";
-        thumbs.append(missing);
-      }
-      div.append(thumbs);
-    }
-    const text = document.createElement("div");
-    text.className = "text";
-    text.textContent = m.content;
-    div.append(text);
-    if (index === last.user && !controller) actions.append(action("Edit", "Edit this message and generate again", () => edit(index)));
-  } else {
-    if (m.reasoning) {
-      const d = document.createElement("details");
-      d.className = "thinking";
-      const s = document.createElement("summary");
-      s.textContent = m.streaming && !m.content ? "Thinking…" : "Thinking";
-      const body = document.createElement("div");
-      body.textContent = m.reasoning;
-      d.append(s, body);
-      div.append(d);
-    }
-    const body = document.createElement("div");
-    body.className = "md" + (m.streaming ? " cursor" : "");
-    body.innerHTML = markdown(formatted(m));
-    for (const button of body.querySelectorAll(".copy-code")) {
-      button.onclick = () => copy(button.closest(".codeblock").querySelector("code").textContent, button);
-    }
-    div.append(body);
-    const meta = document.createElement("span");
-    meta.className = "meta";
-    meta.textContent = m.meta || "";
-    actions.append(meta);
-  }
-  if (!m.streaming) {
-    const button = action("Copy", "Copy this message", () => copy(m.content, button));
-    actions.append(button);
-  }
-  div.append(actions);
-  return div;
-}
-
-function renderChats() {
-  const ul = $("chats");
-  ul.replaceChildren();
-  for (const c of chats) {
-    const li = document.createElement("li");
-    li.className = c === current ? "active" : "";
-    const title = document.createElement("span");
-    title.textContent = c.title;
-    title.title = c.title;
-    const del = action("✕", "Delete this conversation", (e) => {
-      e.stopPropagation();
-      if (controller) return;
-      chats = chats.filter((x) => x !== c);
-      if (current === c) current = null;
-      persist();
-      show();
-    });
-    li.append(title, del);
-    li.onclick = () => {
-      if (controller) return;
-      current = c;
-      persist();
-      document.body.classList.remove("sidebar");
-      show();
-    };
-    ul.append(li);
-  }
-}
-
-function render() {
-  const log = $("log");
-  log.replaceChildren();
-  const messages = current ? current.messages : [];
-  if (!messages.length) {
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "Ask anything. Conversations are kept in this browser only.";
-    log.append(empty);
-  }
-  const last = { user: -1 };
-  messages.forEach((m, i) => { if (m.role === "user") last.user = i; });
-  messages.forEach((m, i) => log.append(bubble(m, i, last)));
-  scrollDown();
-}
-
-function show() {
-  $("system").value = current ? current.system : "";
-  renderChats();
-  render();
-  setBusy(!!controller);
-}
-
-function setBusy(busy) {
-  const messages = current ? current.messages : [];
-  $("send").disabled = busy;
-  $("regenerate").disabled = busy || !messages.some((m) => m.role === "user");
-  $("new").disabled = busy;
-  $("model").disabled = busy;
-  $("thinking").disabled = busy;
-  $("stop").disabled = !busy;
-  updateAttach();
-}
-
-// ---------- Generation ----------
-function errorMessage(value) {
-  return (value && value.error && value.error.message) || JSON.stringify(value);
-}
-
-async function generate() {
-  const c = chat();
-  c.messages = c.messages.filter((m) => m.role !== "error");
-  const messages = [];
-  if (c.system.trim()) messages.push({ role: "system", content: c.system.trim() });
-  for (const m of c.messages) {
-    const parts = (m.images || []).map((url) => ({ type: "image_url", image_url: { url } }));
-    const message = { role: m.role, content: parts.length ? [...parts, { type: "text", text: m.content }] : m.content };
-    if (m.reasoning) message.reasoning_content = m.reasoning;
-    messages.push(message);
-  }
-  const body = { messages, stream: true, stream_options: { include_usage: true } };
-  if ($("model").value) body.model = $("model").value;
-  const temperature = $("temperature").value, maxTokens = $("max_tokens").value;
-  if (temperature !== "") body.temperature = Number(temperature);
-  if (maxTokens !== "") body.max_tokens = Number(maxTokens);
-  const format = $("format").value;
-  if (format === "json") body.response_format = { type: "json_object" };
-  if ($("thinking").value) body.reasoning_effort = $("thinking").value;
-
-  const reply = { role: "assistant", content: "", reasoning: "", meta: "", streaming: true, format };
-  c.messages.push(reply);
-  c.updated = Date.now();
-  controller = new AbortController();
-  setBusy(true);
-  renderChats();
-  render();
-  let node = $("log").lastElementChild;
-  const refresh = () => { const fresh = bubble(reply, -1, {}); node.replaceWith(fresh); node = fresh; scrollDown(); };
-
-  $("status").textContent = "Waiting for the model…";
-  const start = performance.now();
-  let first = null, finish = null, usage = null, failed = null, last = start, pieces = 0;
-  try {
-    const response = await api("/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      let detail;
-      try { detail = errorMessage(await response.json()); } catch (e) { detail = response.statusText; }
-      throw new Error("HTTP " + response.status + ": " + detail);
-    }
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "", pending = false;
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      let cut;
-      while ((cut = buffer.indexOf("\n\n")) >= 0) {
-        const event = buffer.slice(0, cut);
-        buffer = buffer.slice(cut + 2);
-        for (const line of event.split("\n")) {
-          if (!line.startsWith("data: ")) continue;
-          const data = line.slice(6);
-          if (data === "[DONE]") continue;
-          const chunk = JSON.parse(data);
-          if (chunk.error) { failed = errorMessage(chunk); continue; }
-          if (chunk.usage) usage = chunk.usage;
-          const choice = chunk.choices && chunk.choices[0];
-          if (!choice) continue;
-          const delta = choice.delta || {};
-          if (delta.content || delta.reasoning_content) {
-            if (first === null) first = performance.now();
-            last = performance.now();
-            reply.content += delta.content || "";
-            reply.reasoning += delta.reasoning_content || "";
-            pieces++;
-            pending = true;
-          }
-          if (choice.finish_reason) finish = choice.finish_reason;
-        }
-      }
-      if (pending) {
-        pending = false;
-        refresh();
-        const seconds = (performance.now() - first) / 1000;
-        $("status").textContent = "Generating…" + (seconds > 0.5 ? " " + ((pieces - 1) / seconds).toFixed(1) + " tokens/s" : "");
-      }
-    }
-    if (failed) throw new Error(failed);
-  } catch (e) {
-    if (e.name === "AbortError") finish = "stopped";
-    else failed = e.message || String(e);
-  } finally {
-    controller = null;
-  }
-  const end = finish === "stopped" ? last : performance.now();
-  const parts = [];
-  if (usage) parts.push(usage.prompt_tokens + " prompt + " + usage.completion_tokens + " completion tokens");
-  const decodeSeconds = first === null ? 0 : (end - first) / 1000;
-  // Without usage (stopped early) each streamed chunk is about one token.
-  const generated = usage ? usage.completion_tokens : pieces;
-  if (generated > 1 && decodeSeconds > 0) parts.push((usage ? "" : "≈") + ((generated - 1) / decodeSeconds).toFixed(1) + " tokens/s");
-  if (first !== null) parts.push(((first - start) / 1000).toFixed(1) + " s to first token");
-  if (finish) parts.push(finish === "length" ? "stopped at max tokens" : finish);
-  reply.meta = parts.join(" · ");
-  delete reply.streaming;
-  if (!reply.content && !reply.reasoning) c.messages.pop();
-  if (failed) c.messages.push({ role: "error", content: failed });
-  if (c.title === "New chat") {
-    const firstUser = c.messages.find((m) => m.role === "user");
-    if (firstUser) c.title = firstUser.content.trim().split("\n")[0].slice(0, 60) || (firstUser.images ? "Image" : "New chat");
-  }
-  persist();
-  $("status").textContent = storageWarned ? $("status").textContent : "";
-  show();
-}
-
-function send() {
-  const text = $("input").value;
-  if ((!text.trim() && !attachments.length) || controller) return;
-  $("input").value = "";
-  const c = chat();
-  c.messages = c.messages.filter((m) => m.role !== "error");
-  const m = { role: "user", content: text };
-  if (attachments.length) m.images = attachments;
-  attachments = [];
-  renderAttachments();
-  c.messages.push(m);
-  generate();
-}
-
-// ---------- Images ----------
-// Images for the next message (data URLs) and which models can read them.
-let attachments = [];
-let vision = {};
-function canSee() { return !!vision[$("model").value]; }
-function updateAttach() {
-  const b = $("attach");
-  b.disabled = !!controller || !canSee();
-  b.title = canSee() ? "Attach a PNG or JPEG image (you can also paste or drop one)" : "The selected model has no vision projector (serve it with --mmproj)";
-}
-function renderAttachments() {
-  const box = $("attachments");
-  box.replaceChildren(...attachments.map((url, i) => {
-    const t = document.createElement("div");
-    t.className = "thumb";
-    const img = document.createElement("img");
-    img.src = url;
-    img.alt = "Image to send";
-    t.append(img, action("✕", "Remove this image", () => { attachments.splice(i, 1); renderAttachments(); }));
-    return t;
-  }));
-}
-function readURL(blob) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result);
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(blob);
-  });
-}
-// PNG and JPEG are sent as is; other image types are converted to PNG.
-async function addImage(file) {
-  if (!file || !file.type.startsWith("image/")) return;
-  if (!canSee()) { $("status").textContent = "The selected model has no vision projector, so it cannot read images."; return; }
-  try {
-    let url;
-    if (file.type === "image/png" || file.type === "image/jpeg") url = await readURL(file);
-    else {
-      const bitmap = await createImageBitmap(file);
-      const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      canvas.getContext("2d").drawImage(bitmap, 0, 0);
-      url = canvas.toDataURL("image/png");
-    }
-    attachments.push(url);
-    renderAttachments();
-  } catch (e) {
-    $("status").textContent = "Cannot read the image (" + (e.message || e) + ").";
-  }
-}
-$("attach").onclick = () => $("file").click();
-$("file").onchange = () => { for (const f of $("file").files) addImage(f); $("file").value = ""; };
-$("input").addEventListener("paste", (e) => {
-  const files = [...(e.clipboardData ? e.clipboardData.items : [])].filter((i) => i.kind === "file").map((i) => i.getAsFile());
-  if (!files.some((f) => f && f.type.startsWith("image/"))) return;
-  e.preventDefault();
-  files.forEach(addImage);
-});
-const footer = document.querySelector("footer");
-footer.addEventListener("dragover", (e) => { e.preventDefault(); footer.classList.add("dragging"); });
-footer.addEventListener("dragleave", () => footer.classList.remove("dragging"));
-footer.addEventListener("drop", (e) => {
-  e.preventDefault();
-  footer.classList.remove("dragging");
-  for (const f of e.dataTransfer.files) addImage(f);
-});
-
-function edit(index) {
-  if (controller || !current) return;
-  $("input").value = current.messages[index].content;
-  attachments = current.messages[index].images || [];
-  renderAttachments();
-  current.messages = current.messages.slice(0, index);
-  persist();
-  show();
-  $("input").focus();
-}
-
-$("send").onclick = send;
-$("input").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
-});
-$("stop").onclick = () => { if (controller) controller.abort(); };
-$("new").onclick = () => {
-  if (controller) return;
-  current = null;
-  persist();
-  document.body.classList.remove("sidebar");
-  show();
-  $("input").focus();
-};
-$("regenerate").onclick = () => {
-  if (controller || !current) return;
-  const m = current.messages;
-  while (m.length && m[m.length - 1].role !== "user") m.pop();
-  if (m.length) generate();
-};
-$("system").addEventListener("input", () => {
-  if (!current) return;
-  current.system = $("system").value;
-  persist();
-});
-$("menu").onclick = () => document.body.classList.toggle("sidebar");
-$("scroll").addEventListener("click", () => document.body.classList.remove("sidebar"));
-
-// Settings that persist across conversations.
-for (const id of ["temperature", "max_tokens", "format", "thinking"]) {
-  $(id).value = load(id, "");
-  $(id).addEventListener("change", () => save(id, $(id).value));
-}
-function applyTheme() {
-  const theme = $("theme").value;
-  if (theme) document.documentElement.dataset.theme = theme;
-  else delete document.documentElement.dataset.theme;
-}
-$("theme").value = load("theme", "");
-applyTheme();
-$("theme").addEventListener("change", () => { save("theme", $("theme").value); applyTheme(); });
-
-$("model").addEventListener("change", () => { save("model", $("model").value); updateAttach(); });
-api("/v1/models").then((r) => {
-  if (!r.ok) throw new Error("HTTP " + r.status);
-  return r.json();
-}).then((v) => {
-  const ids = (v.data || []).map((m) => m.id).filter(Boolean);
-  if (!ids.length) throw new Error("no models");
-  vision = Object.fromEntries((v.data || []).map((m) => [m.id, !!m.vision]));
-  const select = $("model");
-  select.replaceChildren(...ids.map((id) => { const o = document.createElement("option"); o.value = id; o.textContent = id + (vision[id] ? " · vision" : ""); return o; }));
-  const saved = load("model", "");
-  if (ids.includes(saved)) select.value = saved;
-  document.title = select.value + " · ingot";
-  updateAttach();
-  select.addEventListener("change", () => { document.title = select.value + " · ingot"; });
-}).catch((e) => {
-  $("model").replaceChildren(new Option("No model", ""));
-  $("status").textContent = "Cannot list models (" + e.message + "); is the server running?";
-});
-show();
-$("input").focus();
-</script>
+<script src="chat.js"></script>
 <script src="monitor.js"></script>
+<script src="models.js"></script>
+<script src="settings.js"></script>
+<script src="shell.js"></script>
 </body>
 </html>

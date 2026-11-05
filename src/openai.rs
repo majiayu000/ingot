@@ -4,6 +4,7 @@ use crate::thinking::Thinking;
 use crate::tokenizer::{Message, Role};
 use crate::tools::{self, ToolCall, holdback};
 use serde_json::{Map, Value, json};
+use std::time::Duration;
 
 const COMPLETIONS_DEFAULT_MAX_TOKENS: usize = 16;
 const THINK_START: &str = "<think>";
@@ -68,9 +69,13 @@ pub(crate) struct Request {
     pub(crate) format: crate::structured::Format,
     /// Requested thinking level; None is the server default, else the model's.
     pub(crate) thinking: Option<Thinking>,
+    /// `num_ctx`: load the model with at least this context.
+    pub(crate) context: Option<usize>,
+    /// `keep_alive`: idle time before unloading; `Some(None)` keeps it loaded.
+    pub(crate) keep_alive: Option<Option<Duration>>,
 }
 
-const COMMON_FIELDS: [&str; 14] = [
+const COMMON_FIELDS: [&str; 18] = [
     "model",
     "max_tokens",
     "temperature",
@@ -85,6 +90,11 @@ const COMMON_FIELDS: [&str; 14] = [
     "presence_penalty",
     "frequency_penalty",
     "logprobs",
+    // Not in OpenAI's API: Ollama options, also set by custom models.
+    "min_p",
+    "repeat_penalty",
+    "num_ctx",
+    "keep_alive",
 ];
 
 /// Validate an OpenAI request body. Every accepted field has an effect, or is
@@ -199,6 +209,8 @@ pub(crate) fn parse_request(body: &[u8], chat: bool, model_id: &str) -> Result<R
         temperature: number("temperature")?.map_or(d.temperature, |v| v as f32),
         top_p: number("top_p")?.map_or(d.top_p, |v| v as f32),
         top_k: integer("top_k")?.map_or(d.top_k, |v| v as usize),
+        min_p: number("min_p")?.map_or(d.min_p, |v| v as f32),
+        repeat_penalty: number("repeat_penalty")?.map_or(d.repeat_penalty, |v| v as f32),
         seed: match fields.get("seed") {
             None => random_seed(),
             Some(v) => v
@@ -209,11 +221,10 @@ pub(crate) fn parse_request(body: &[u8], chat: bool, model_id: &str) -> Result<R
     };
     if let Err(e) = sampling.validate() {
         let message = e.to_string();
-        let param = if message.starts_with("top_p") {
-            "top_p"
-        } else {
-            "temperature"
-        };
+        let param = ["top_p", "min_p", "repeat_penalty"]
+            .into_iter()
+            .find(|p| message.starts_with(p))
+            .unwrap_or("temperature");
         return Err(bad(message, Some(param)));
     }
     let stop_error = || bad("stop must be a string or an array of strings", Some("stop"));
@@ -272,7 +283,26 @@ pub(crate) fn parse_request(body: &[u8], chat: bool, model_id: &str) -> Result<R
         clamp_max_tokens: false,
         format: crate::structured::openai(&fields)?,
         thinking: parse_thinking(&fields)?,
+        context: integer("num_ctx")?.map(|n| n as usize),
+        keep_alive: fields.get("keep_alive").map(keep_alive).transpose()?,
     })
+}
+
+/// `keep_alive`: seconds or a duration such as `5m`; negative keeps the model
+/// loaded. The outer `Option` of the field is "not given", the inner "forever".
+pub(crate) fn keep_alive(value: &Value) -> Result<Option<Duration>, ApiError> {
+    let p = Some("keep_alive");
+    let text = match value {
+        Value::Number(n) => n.to_string(),
+        Value::String(s) => s.clone(),
+        _ => return Err(bad("keep_alive must be a number or a duration", p)),
+    };
+    if text.starts_with('-') {
+        return Ok(None);
+    }
+    crate::server::worker::duration(&text)
+        .map(Some)
+        .map_err(|e| bad(e.to_string(), p))
 }
 
 /// `reasoning_effort` (none, minimal, low, medium, high, xhigh) and

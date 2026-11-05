@@ -1,10 +1,11 @@
 //! Known model manifest, local discovery and memory-budget recommendations.
+pub mod custom;
 mod download;
-mod hf;
+pub mod hf;
 #[cfg(test)]
 mod tests;
 
-pub use download::pull;
+pub use download::{Report, pull, pull_with};
 
 use crate::gguf::Gguf;
 use crate::{Result, invalid};
@@ -18,7 +19,7 @@ const MANIFEST: &str = include_str!("manifest.txt");
 const GIB: u64 = 1 << 30;
 /// Reserve above resident weights for session state, workspace and host overhead.
 const HEADROOM: u64 = 4 * GIB;
-const DEFAULT_ENDPOINT: &str = "https://huggingface.co";
+pub const DEFAULT_ENDPOINT: &str = "https://huggingface.co";
 /// Directory levels searched below the model root for existing files.
 const SEARCH_DEPTH: usize = 4;
 
@@ -46,6 +47,8 @@ impl ModelFile {
 pub struct Model {
     pub name: String,
     pub kind: Kind,
+    /// Name shown in the app; empty for drafts.
+    pub title: String,
     pub summary: String,
     pub resident_bytes: u64,
     pub draft: Option<String>,
@@ -103,6 +106,7 @@ impl Manifest {
                 models.push(Model {
                     name: name.into(),
                     kind: Kind::Main,
+                    title: String::new(),
                     summary: String::new(),
                     resident_bytes: 0,
                     draft: None,
@@ -131,6 +135,7 @@ impl Manifest {
                         _ => return Err(error("kind must be main or draft")),
                     }
                 }
+                "title" => model.title = value.into(),
                 "summary" => model.summary = value.into(),
                 "resident_bytes" => {
                     model.resident_bytes = value.parse().map_err(|_| error("resident_bytes"))?
@@ -234,10 +239,13 @@ fn check_model(m: &Model, keys: &HashSet<&str>) -> Result<()> {
     Ok(())
 }
 
-/// `INGOT_MODELS`, otherwise `~/.cache/ingot/models`.
+/// `INGOT_MODELS`, then the app's model folder setting, then `~/.cache/ingot/models`.
 pub fn default_dir() -> Result<PathBuf> {
     if let Some(dir) = std::env::var_os("INGOT_MODELS") {
         return Ok(dir.into());
+    }
+    if let Some(dir) = crate::settings::models_dir() {
+        return Ok(dir);
     }
     let home = std::env::var_os("HOME")
         .ok_or_else(|| invalid("set INGOT_MODELS or HOME, or pass --dir"))?;
@@ -518,6 +526,59 @@ pub fn local_main(manifest: &Manifest, root: &Path) -> Result<Vec<String>> {
             .filter(|spec| !names.contains(spec.rsplit('/').next().unwrap_or(spec))),
     );
     Ok(local)
+}
+
+/// Bytes a complete local model `id` takes on disk.
+pub fn local_bytes(manifest: &Manifest, id: &str, root: &Path) -> u64 {
+    match hf::Spec::parse(id) {
+        Some(Ok(spec)) => spec.files(root).iter().filter_map(|p| file_len(p)).sum(),
+        _ => manifest.get(id).map_or(0, Model::download_bytes),
+    }
+}
+
+/// Models the engine's two tuned paths and generic path run.
+pub fn supported_architecture(name: &str) -> bool {
+    matches!(name, "qwen4exp" | "glm5-next") || crate::generic_arch::ARCHITECTURES.contains(&name)
+}
+
+/// Deletes the files of local model `id`, with any partial download. Files
+/// another listed model also uses stay. Returns the bytes freed.
+pub fn remove(manifest: &Manifest, id: &str, root: &Path) -> Result<u64> {
+    let paths = match hf::Spec::parse(id) {
+        Some(spec) => spec?.files(root),
+        None => {
+            let model = manifest.get(id)?;
+            let shared: HashSet<&str> = manifest
+                .models
+                .iter()
+                .filter(|m| m.name != model.name)
+                .flat_map(|m| m.files.iter().map(ModelFile::name))
+                .collect();
+            let found = locate(root, &manifest.file_names())?;
+            colocated(&found, model)
+                .into_iter()
+                .filter(|p| {
+                    !p.file_name()
+                        .is_some_and(|n| shared.contains(n.to_string_lossy().as_ref()))
+                })
+                .collect()
+        }
+    };
+    let mut freed = 0;
+    for path in &paths {
+        let part = format!("{}.part", path.display());
+        for file in [path.as_path(), Path::new(&part)] {
+            if let Some(len) = file_len(file) {
+                fs::remove_file(file)?;
+                freed += len;
+            }
+        }
+        if let Some(dir) = path.parent().filter(|d| *d != root) {
+            // Only an empty directory goes; a shared one stays.
+            let _ = fs::remove_dir(dir);
+        }
+    }
+    Ok(freed)
 }
 
 /// Text table for `ingot models`.

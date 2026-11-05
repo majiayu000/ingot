@@ -13,6 +13,7 @@ rayon = "=1.12.0"
 objc2 = "0.6.4"
 objc2-foundation = "0.3.2"
 objc2-metal = "0.3.2"
+objc2-pdf-kit = { version = "0.3.2", default-features = false, features = ["std", "PDFDocument"] }
 
 ahash = "=0.8.12"
 tokenizers = { version = "=0.22.1", default-features = false, features = ["onig"] }

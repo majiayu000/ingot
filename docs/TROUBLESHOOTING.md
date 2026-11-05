@@ -9,6 +9,24 @@ When you report a problem, include the full message, the command you ran,
 
 ## Installing
 
+### macOS cannot verify Ingot
+
+The disk image on the releases page is signed and notarized, so it opens
+normally. A copy built with `scripts/package-app.sh` and no `INGOT_SIGN_ID` is
+signed ad hoc, and another Mac blocks it the first time. Try to open it and
+choose **Done**, then go to **System Settings > Privacy & Security** and choose
+**Open Anyway**.
+
+### The Mac app says it could not start
+
+Choose **Show Log**. The log is at `~/Library/Logs/Ingot/ingot.log`. **Try
+Again** starts the engine again; it also restarts by itself after a crash.
+
+### A PDF cannot be attached
+
+A scanned PDF holds pictures of pages, so there is no text to read. PDFs over
+16 MiB are also refused.
+
 ### Xcode Command Line Tools missing
 
 ```text

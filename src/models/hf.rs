@@ -79,6 +79,12 @@ impl Spec {
         root.join("hf").join(&self.repo).join(path)
     }
 
+    /// Local paths of every shard.
+    pub fn files(&self, root: &Path) -> Vec<PathBuf> {
+        let paths = self.shard_paths();
+        paths.iter().map(|p| self.local(root, p)).collect()
+    }
+
     /// Local first shard when every shard is present.
     pub fn resolve(&self, root: &Path) -> Result<PathBuf> {
         let paths = self.shard_paths();
@@ -199,15 +205,30 @@ fn lookup(spec: &Spec, endpoint: &str) -> Result<Vec<ModelFile>> {
         .collect()
 }
 
+/// Fetches JSON from the Hugging Face API.
+pub fn get_json(url: &str) -> Result<Value> {
+    let response = super::download::agent()
+        .get(url)
+        .call()
+        .map_err(|e| io::Error::other(format!("cannot reach {url}: {e}")))?;
+    let body = response
+        .into_body()
+        .with_config()
+        .limit(64 << 20)
+        .read_to_string()
+        .map_err(|e| io::Error::other(format!("cannot read {url}: {e}")))?;
+    serde_json::from_str(&body).map_err(|e| invalid(format!("{url}: unexpected response ({e})")))
+}
+
 /// Downloads or verifies every shard of `spec`; returns the first shard path.
-pub fn pull(spec: &Spec, root: &Path, endpoint: &str) -> Result<PathBuf> {
+pub fn pull(spec: &Spec, root: &Path, endpoint: &str, report: super::Report) -> Result<PathBuf> {
     let files = lookup(spec, endpoint)?;
     for f in &files {
         let target = spec.local(root, &f.path);
         if let Some(dir) = target.parent() {
             std::fs::create_dir_all(dir)?;
         }
-        fetch(f, &target, endpoint, || Ok(false))?;
+        fetch(f, &target, endpoint, report, || Ok(false))?;
     }
     Ok(spec.local(root, &files[0].path))
 }
