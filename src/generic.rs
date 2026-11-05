@@ -19,8 +19,11 @@ pub(crate) use crate::generic_arch::ARCHITECTURES;
 const PREFILL_BLOCK: [usize; 2] = [128, 512];
 /// Head dimensions with a flash prefill kernel.
 fn flash_head(head: usize) -> bool {
-    matches!(head, 64 | 96 | 128 | 256)
+    matches!(head, 64 | 96 | 128 | 256 | 512)
 }
+/// Flash head dimensions without a tail kernel: their last partial tile of
+/// fewer than 64 query rows uses dense attention.
+const NO_FLASH_TAIL: usize = 512;
 
 pub(crate) struct State {
     keys: Vec<Buffer>,
@@ -86,7 +89,13 @@ impl Generic {
         let flash = c.geometry.iter().all(|l| flash_head(l.head));
         let block_size = PREFILL_BLOCK[flash as usize];
         let block = block_size.min(context);
-        let dense = if flash { 4 } else { block };
+        let dense = if !flash {
+            block
+        } else if c.geometry.iter().any(|l| l.head == NO_FLASH_TAIL) {
+            64.min(block)
+        } else {
+            4
+        };
         // Two layers in flight, each up to 12 width-sized and 3 FFN-sized rows
         // per token (fused QKV and gate/up, residuals and norms).
         let workspace = 256 * 1024 * 1024
@@ -350,6 +359,21 @@ impl Generic {
         position: usize,
         count: usize,
     ) -> Result<Buffer> {
+        let y = self.gpu.output(c.heads * count * c.head)?;
+        self.dense_into(cmd, q, cache, c, position, count, &y)?;
+        Ok(y)
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn dense_into(
+        &self,
+        cmd: &Command,
+        q: &Buffer,
+        cache: [&Buffer; 2],
+        c: &Geometry,
+        position: usize,
+        count: usize,
+        y: &Buffer,
+    ) -> Result<()> {
         let length = position + count;
         let rows = c.heads * count;
         let params = [
@@ -383,16 +407,14 @@ impl Generic {
             rows,
             1,
         )?;
-        let y = self.gpu.output(rows * c.head)?;
         self.gpu.op(
             cmd,
             "attention_values_dense_batch",
-            &[&probabilities, cache[1], &y],
+            &[&probabilities, cache[1], y],
             &params[..5],
             c.head,
             rows,
-        )?;
-        Ok(y)
+        )
     }
     /// Flash-style causal prefill attention. Rows whose keys end inside the
     /// last whole 64-key tile use the bounds-free kernel; the rest the tail one.
@@ -411,6 +433,14 @@ impl Generic {
         let full = (length / 64 * 64).saturating_sub(position).min(count);
         for (begin, rows, tail) in [(0, full, false), (full, count - full, true)] {
             if rows == 0 {
+                continue;
+            }
+            if tail && c.head == NO_FLASH_TAIL {
+                let (q, y) = (
+                    q.view_f32(begin * width, rows * width)?,
+                    out.view_f32(begin * width, rows * width)?,
+                );
+                self.dense_into(cmd, &q, cache, c, position + begin, rows, &y)?;
                 continue;
             }
             let name = format!(

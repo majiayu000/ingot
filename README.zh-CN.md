@@ -98,7 +98,7 @@ Mac 应用会自动在 11435 端口启动这个服务，可以在菜单栏图标
 | [Strata](docs/PERFORMANCE.md#vs-strata-on-mac) | Qwen3.8，相同 GGUF 和 MTP head，1K、4K 提示词 | 请求耗时比 0.79–0.92；生成速度快 15–47% |
 | Strata | 同上，16K 提示词，不开 MTP | 打平（0.98–1.00）；Strata 的提示词处理快 4–7% |
 | [oMLX](docs/PERFORMANCE.md) | Qwen3.8，量化方式不同 | 1K 为 0.82，4K 为 1.01；oMLX 的 4-bit 权重质量得分更高 |
-| [llama.cpp](docs/ENGINE.md#generic-architectures) | 7 个标准 GGUF 模型 | logits 误差约 1e-4；生成速度相差 ±7% 以内；提示词处理慢 8–19%，Gemma 4 慢 53% |
+| [llama.cpp](docs/ENGINE.md#generic-architectures) | 7 个标准 GGUF 模型 | logits 误差约 1e-4；生成速度相差 ±7% 以内；提示词处理慢 8–20% |
 
 Ingot 最强的是专门优化过的 Qwen3.8 和 GLM-5.3。标准 GGUF 模型结果正确、速度接近，
 但提示词处理仍然比 llama.cpp 慢。

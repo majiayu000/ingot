@@ -4280,3 +4280,130 @@ mod routed_verify_probe {
         }
     }
 }
+
+#[cfg(test)]
+mod generic_flash_tests {
+    use super::super::Gpu;
+
+    /// Generic flash prefill matches dense attention, including head size 512.
+    #[test]
+    fn flash_prefill_matches_dense() {
+        let gpu = Gpu::new().unwrap();
+        let mut seed = 0x2545_f491_u32;
+        let mut random = |n: usize| -> Vec<f32> {
+            (0..n)
+                .map(|_| {
+                    seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                    (seed >> 8) as f32 / (1 << 24) as f32 * 2. - 1.
+                })
+                .collect()
+        };
+        let (heads, kv) = (4, 2);
+        for head in [256usize, 512] {
+            for (position, count, peak) in
+                [(0usize, 512usize, 1f32), (3072, 256, 1.), (3072, 256, 24.)]
+            {
+                let length = position + count;
+                let qh: Vec<f32> = random(count * heads * head)
+                    .iter()
+                    .map(|x| x * peak)
+                    .collect();
+                let kh = random(length * kv * head);
+                let vh = random(length * kv * head);
+                let q = gpu.floats(&qh).unwrap();
+                let (k, v) = (gpu.floats(&kh).unwrap(), gpu.floats(&vh).unwrap());
+                let rows = heads * count;
+                let scores = gpu.output(rows * length).unwrap();
+                let probabilities = gpu.output(rows * length).unwrap();
+                let dense = gpu.output(rows * head).unwrap();
+                let flash = gpu.output(rows * head).unwrap();
+                let p = [head, heads, kv, length, position].map(|x| x as u32);
+                let cmd = gpu.command().unwrap();
+                gpu.op(
+                    &cmd,
+                    "attention_scores_dense_batch",
+                    &[&q, &k, &scores],
+                    &p,
+                    length,
+                    rows,
+                )
+                .unwrap();
+                gpu.op(
+                    &cmd,
+                    "softmax_dense_batch",
+                    &[&scores, &probabilities],
+                    &[length as u32, heads as u32, position as u32],
+                    rows,
+                    1,
+                )
+                .unwrap();
+                gpu.op(
+                    &cmd,
+                    "attention_values_dense_batch",
+                    &[&probabilities, &v, &dense],
+                    &p,
+                    head,
+                    rows,
+                )
+                .unwrap();
+                gpu.op(
+                    &cmd,
+                    &format!("flash_prefill_{head}"),
+                    &[&q, &k, &v, &flash],
+                    &[head, heads, kv, length, position, count, 0].map(|x| x as u32),
+                    count.div_ceil(8) * 4,
+                    heads,
+                )
+                .unwrap();
+                gpu.submit(&cmd);
+                gpu.wait(cmd).unwrap();
+                let (a, b) = (gpu.read_f32(&dense).unwrap(), gpu.read_f32(&flash).unwrap());
+                let error: f64 = a
+                    .iter()
+                    .zip(&b)
+                    .map(|(&x, &y)| (f64::from(x) - f64::from(y)).powi(2))
+                    .sum();
+                let energy: f64 = a.iter().map(|&x| f64::from(x).powi(2)).sum();
+                let relative = (error / energy).sqrt();
+                // Double-precision reference for the last row of each head.
+                let t = count - 1;
+                let mut worst = [0f64; 2];
+                for h in 0..heads {
+                    let kh_ = h / (heads / kv);
+                    let qrow = &qh[(t * heads + h) * head..][..head];
+                    let n = position + t + 1;
+                    let s: Vec<f64> = (0..n)
+                        .map(|j| {
+                            let krow = &kh[(j * kv + kh_) * head..][..head];
+                            qrow.iter()
+                                .zip(krow)
+                                .map(|(&a, &b)| f64::from(a) * f64::from(b))
+                                .sum::<f64>()
+                                / (head as f64).sqrt()
+                        })
+                        .collect();
+                    let m = s.iter().cloned().fold(f64::MIN, f64::max);
+                    let e: Vec<f64> = s.iter().map(|x| (x - m).exp()).collect();
+                    let z: f64 = e.iter().sum();
+                    for d in 0..head {
+                        let y: f64 = (0..n)
+                            .map(|j| e[j] / z * f64::from(vh[(j * kv + kh_) * head + d]))
+                            .sum();
+                        let i = (t * heads + h) * head + d;
+                        worst[0] = worst[0].max((f64::from(a[i]) - y).abs());
+                        worst[1] = worst[1].max((f64::from(b[i]) - y).abs());
+                    }
+                }
+                assert!(
+                    relative < 2e-5,
+                    "head {head} position {position}: relative L2 {relative}"
+                );
+                assert!(
+                    worst[1] < 2e-5,
+                    "head {head} position {position}: flash error {} vs f64",
+                    worst[1]
+                );
+            }
+        }
+    }
+}

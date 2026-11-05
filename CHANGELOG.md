@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. Versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Performance
+
+- Gemma 4 prompt processing is about twice as fast: its head-size-512 global
+  layers now use flash prefill attention, which also allows 512-token prefill
+  blocks. A 3813-token chat prompt on an M2 Max went from 125 to 261 tok/s;
+  greedy output still matches llama.cpp.
+
 ## [0.1.0] - 2026-11-05
 
 First public release.

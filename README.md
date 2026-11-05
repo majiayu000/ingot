@@ -107,7 +107,7 @@ faster.
 | [Strata](docs/PERFORMANCE.md#vs-strata-on-mac) | Qwen3.8, same GGUF and MTP head, 1K and 4K prompts | Request time ratio 0.79–0.92; generation 15–47% faster |
 | Strata | Same, 16K prompts without MTP | Tie (0.98–1.00); Strata's prompt processing is 4–7% faster |
 | [oMLX](docs/PERFORMANCE.md) | Qwen3.8, different quantization | Ratio 0.82 at 1K, 1.01 at 4K; oMLX's 4-bit weights score higher on quality |
-| [llama.cpp](docs/ENGINE.md#generic-architectures) | Seven standard GGUF models | Logits match to about 1e-4; generation within ±7%; prompt processing 8–19% slower, 53% slower on Gemma 4 |
+| [llama.cpp](docs/ENGINE.md#generic-architectures) | Seven standard GGUF models | Logits match to about 1e-4; generation within ±7%; prompt processing 8–20% slower |
 
 Ingot is strongest on the Qwen3.8 and GLM-5.3 paths it was built for. Standard
 GGUF models are correct and close, but llama.cpp still processes prompts faster.

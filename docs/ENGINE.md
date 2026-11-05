@@ -130,8 +130,12 @@ given; it exceeds the 1024-token sliding window of the Gemma models):
 | `phi3-mini-4k-instruct-q4` | max abs diff 6.2e-5, top-1 26/26 | 48/48, 32/32 (1698 tokens) | 87.6 / 92.1 tok/s | 682 / 766 tok/s |
 | `phi4-q4_0` | max abs diff 5.3e-5, top-1 27/27 | 48/48, 32/32 (2807 tokens) | 33.9 / 36.2 tok/s | 228 / 277 tok/s |
 
-Gemma 4's global layers have head size 512, which has no flash prefill kernel
-yet, so its prefill uses dense attention in 128-token blocks. Phi-3-mini-4k produces garbage past
+Gemma 4's global layers have head size 512. Their flash prefill kernel has no
+tail variant (its key tile would not fit in threadgroup memory), so the last
+partial tile of fewer than 64 query rows uses dense attention. Re-measured
+2026-11-05 on the M2 Max with another GPU job's model resident: prefill of a
+3813-token chat prompt went from 125 to 261 tok/s (llama.cpp: 293 tok/s at
+pp4562), and 48 greedy tokens still match llama.cpp on two long chat prompts. Phi-3-mini-4k produces garbage past
 2047 tokens in both engines, because neither applies the sliding window it was
 trained with.
 
