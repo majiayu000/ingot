@@ -238,6 +238,7 @@ function bubble(m, index, last) {
   if (!m.streaming) {
     const button = action("Copy", "Copy this message", () => copy(m.content, button));
     actions.append(button);
+    if (index >= 0 && !controller) actions.append(action("Branch", "Start a new chat from this message", () => branchFrom(index)));
   }
   div.append(actions);
   return div;
@@ -716,11 +717,3 @@ function native(message) {
 }
 if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.ingot) document.body.classList.add("native");
 
-const modelsReady = readChats().then(() => {
-  show();
-  return catalogReady();
-}).then(() => loadModels()).catch((e) => {
-  $("model").replaceChildren(new Option("No model", ""));
-  $("status").textContent = "Cannot list models (" + e.message + "); is the server running?";
-  return null;
-});

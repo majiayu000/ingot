@@ -58,6 +58,7 @@ async function refreshLibrary() {
 async function pull(name, total) {
   const controller = new AbortController();
   const state = { controller, files: {}, started: Date.now(), done: 0, resumed: null, total };
+  askToNotify();
   running.set(name, state);
   libraryError = "";
   renderLibrary();
@@ -84,8 +85,12 @@ async function pull(name, total) {
       }
       showProgress(name);
     }
+    notify(`${titles[name] || name} is ready`, "The download finished. You can chat with it now.");
   } catch (e) {
-    if (e.name !== "AbortError") libraryError = `${titles[name] || name}: ${e.message}`;
+    if (e.name !== "AbortError") {
+      libraryError = `${titles[name] || name}: ${e.message}`;
+      notify(`${titles[name] || name} did not download`, e.message);
+    }
   }
   running.delete(name);
   await refreshLibrary();
@@ -472,5 +477,3 @@ function openCustom(existing) {
 }
 
 window.addEventListener("ingot-view", (e) => { if (e.detail === "models") refreshLibrary(); });
-// A new Mac starts here: there is nothing to chat with yet.
-modelsReady.then((ids) => { if (ids && !ids.length) go("models"); });

@@ -35,6 +35,34 @@ function versionSwitcher(m) {
   return box;
 }
 
+// A new chat holding the conversation up to message `index`. From a
+// question, the question goes back into the composer to be edited and sent.
+function branchFrom(index) {
+  if (controller || !current) return;
+  const source = current.messages[index];
+  const c = newChat();
+  c.title = ("Branch: " + current.title).slice(0, 80);
+  c.system = current.system;
+  c.project = current.project || "";
+  c.messages = structuredClone(current.messages.slice(0, source.role === "user" ? index : index + 1));
+  chats.push(c);
+  current = c;
+  persist();
+  show();
+  if (source.role === "user") { $("input").value = source.content; fitInput(); }
+  $("input").focus();
+}
+
+// Finished downloads are announced when Ingot is not in front.
+function askToNotify() {
+  if (!window.webkit && "Notification" in window && Notification.permission === "default") Notification.requestPermission();
+}
+function notify(title, body) {
+  if (document.hasFocus() && !document.hidden) return;
+  if (native({ action: "notify", title, body })) return;
+  if ("Notification" in window && Notification.permission === "granted") new Notification(title, { body });
+}
+
 // Opening a search result marks the matches and scrolls to the first.
 function highlightMatches(text) {
   const needle = text.toLowerCase();
@@ -176,6 +204,52 @@ function renameChat(c, title) {
     URL.revokeObjectURL(link.href);
   };
 
+  // Saved prompts live in the server settings, next to the chats.
+  let prompts = null;
+  async function savePrompts(list) {
+    try {
+      prompts = (await json("/api/settings", { method: "PUT", body: JSON.stringify({ prompts: list }) })).prompts;
+    } catch (e) {
+      $("status").textContent = "Could not save prompts: " + e.message;
+    }
+    renderPrompts();
+  }
+  function renderPrompts() {
+    const box = $("prompts");
+    const items = (prompts || []).map((text, i) => {
+      const row = element("div", "prompt");
+      const use = element("button", "plain", text.split("\n")[0].slice(0, 80));
+      use.title = text.slice(0, 400);
+      use.onclick = () => {
+        const input = $("input");
+        input.value = input.value.trim() ? input.value.replace(/\s*$/, "\n\n") + text : text;
+        closePrompts();
+        fitInput();
+        input.focus();
+      };
+      const del = action("✕", "Remove this prompt", () => savePrompts(prompts.filter((_, j) => j !== i)));
+      row.append(use, del);
+      return row;
+    });
+    const add = element("button", "plain add", "Save current text as a prompt");
+    add.disabled = !$("input").value.trim();
+    add.onclick = () => savePrompts([...(prompts || []), $("input").value.trim()]);
+    box.replaceChildren(...(items.length ? items : [element("div", "note", "No saved prompts yet.")]), add);
+  }
+  function closePrompts() {
+    $("prompts").hidden = true;
+    $("prompts-toggle").setAttribute("aria-expanded", "false");
+  }
+  $("prompts-toggle").onclick = async (e) => {
+    e.stopPropagation();
+    if (!$("prompts").hidden) return closePrompts();
+    if (prompts === null) prompts = (await json("/api/settings").catch(() => ({}))).prompts || [];
+    renderPrompts();
+    $("prompts").hidden = false;
+    $("prompts-toggle").setAttribute("aria-expanded", "true");
+  };
+  document.addEventListener("click", (e) => { if (!$("prompts").hidden && !$("prompts").contains(e.target)) closePrompts(); });
+
   // Command-N new chat, Command-K search, Escape stops an answer.
   document.addEventListener("keydown", (e) => {
     const command = e.metaKey || e.ctrlKey;
@@ -187,6 +261,8 @@ function renameChat(c, title) {
       collapse(false);
       $("search").focus();
       $("search").select();
+    } else if (e.key === "Escape" && !$("prompts").hidden) {
+      closePrompts();
     } else if (e.key === "Escape" && !$("stop").hidden) {
       $("stop").click();
     }
@@ -196,8 +272,19 @@ function renameChat(c, title) {
   refresh();
 })();
 
+// Startup runs last, once every script has loaded: the chain below calls into
+// models.js, and the restored page needs its script listening for "ingot-view".
+readChats().then(() => {
+  show();
+  return catalogReady();
+}).then(() => loadModels()).then((ids) => {
+  // A new Mac starts on Models: there is nothing to chat with yet.
+  if (ids && !ids.length) go("models");
+}).catch((e) => {
+  $("model").replaceChildren(new Option("No model", ""));
+  $("status").textContent = "Cannot list models (" + e.message + "); is the server running?";
+});
 // The app restarts the engine when server settings change: return to the page.
-// This runs last, once every page script listens for "ingot-view".
 const lastView = load("view", "chat");
 go(["model", "custom"].includes(lastView) ? "models" : lastView);
 $("input").focus();
