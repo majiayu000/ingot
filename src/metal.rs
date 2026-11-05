@@ -827,6 +827,7 @@ impl Gpu {
                     | "flash_prefill_128_tail"
                     | "flash_prefill_256"
                     | "flash_prefill_256_tail"
+                    | "flash_prefill_512"
                     | "delta_net_batch"
                     | "attention_prefill_tail"
                     | "quant_matvec"

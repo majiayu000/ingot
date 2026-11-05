@@ -6,7 +6,7 @@ use crate::{Result, invalid};
 use objc2_metal::*;
 use std::io;
 
-pub(super) const OPERATIONS: [&str; 42] = [
+pub(super) const OPERATIONS: [&str; 43] = [
     "routed_q4k",
     "routed_q6k",
     "flash_prefill_64",
@@ -17,6 +17,7 @@ pub(super) const OPERATIONS: [&str; 42] = [
     "flash_prefill_128_tail",
     "flash_prefill_256",
     "flash_prefill_256_tail",
+    "flash_prefill_512",
     "mv_q4k_2",
     "mv_q6k_2",
     "mv_q4_0_4",
