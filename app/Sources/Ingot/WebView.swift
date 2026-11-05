@@ -65,7 +65,9 @@ struct WebView: NSViewRepresentable {
             case "restart":
                 engine.restart()
             case "export":
-                if let text = body["text"] as? String { engine.exportChats(text) }
+                if let text = body["text"] as? String {
+                    engine.exportChats(text, name: body["name"] as? String ?? "ingot-chats.json")
+                }
             case "terminal":
                 if let tool = body["tool"] as? String, let model = body["model"] as? String {
                     engine.launchInTerminal(tool: tool, model: model)

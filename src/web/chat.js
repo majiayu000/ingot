@@ -344,11 +344,11 @@ function renderChats() {
   const ul = $("chats");
   ul.replaceChildren();
   const list = chats.filter((c) => (!projectFilter || c.project === projectFilter) && matchesSearch(c))
-    .sort((a, b) => b.updated - a.updated);
+    .sort((a, b) => !!b.starred - !!a.starred || b.updated - a.updated);
   $("chats-title").textContent = searchText ? "Results" : projectFilter || "Recents";
   for (const c of list) {
     const li = document.createElement("li");
-    li.className = c === current ? "active" : "";
+    li.className = (c === current ? "active " : "") + (c.starred ? "starred" : "");
     const title = document.createElement("span");
     title.textContent = c.title;
     title.title = c.title;
@@ -393,6 +393,9 @@ function render() {
 function show() {
   $("system").value = current ? current.system : "";
   $("chat-title").textContent = current && current.messages.length ? current.title : "";
+  $("star").hidden = $("export").hidden = !(current && current.messages.length);
+  $("star").setAttribute("aria-pressed", String(!!(current && current.starred)));
+  $("star").textContent = current && current.starred ? "Starred" : "Star";
   renderChats();
   render();
   setBusy(!!controller);
@@ -432,7 +435,7 @@ async function generate() {
   if (maxTokens !== "") body.max_tokens = Number(maxTokens);
   const format = $("format").value;
   if (format === "json") body.response_format = { type: "json_object" };
-  if ($("thinking").value) body.reasoning_effort = $("thinking").value;
+  if ($("thinking").value && !$("thinking").hidden) body.reasoning_effort = $("thinking").value;
 
   const reply = { role: "assistant", content: "", reasoning: "", meta: "", streaming: true, format };
   c.messages.push(reply);
@@ -550,10 +553,11 @@ function send() {
 // which models can read images.
 let attachments = [];
 let documents = [];
-let vision = {};
+let vision = {}, thinks = {};
 const MAX_TEXT = 4 * 1024 * 1024;
 function canSee() { return !!vision[$("model").value]; }
-function updateAttach() { $("attach").disabled = !!controller; }
+// The thinking picker shows only for models whose template can think.
+function updateAttach() { $("attach").disabled = !!controller; $("thinking").hidden = thinks[$("model").value] === false; }
 function fileChip(f) {
   const chip = document.createElement("span");
   chip.className = "chip";
@@ -638,10 +642,11 @@ $("input").addEventListener("paste", (e) => {
   e.preventDefault();
   files.forEach(addFile);
 });
-const footer = document.querySelector("footer");
-footer.addEventListener("dragover", (e) => { e.preventDefault(); footer.classList.add("dragging"); });
-footer.addEventListener("dragleave", () => footer.classList.remove("dragging"));
-footer.addEventListener("drop", (e) => {
+// Files dropped anywhere on the conversation attach; the composer shows it.
+const footer = document.querySelector("footer"), zone = document.querySelector(".chatview");
+zone.addEventListener("dragover", (e) => { e.preventDefault(); footer.classList.add("dragging"); });
+zone.addEventListener("dragleave", (e) => { if (!zone.contains(e.relatedTarget)) footer.classList.remove("dragging"); });
+zone.addEventListener("drop", (e) => {
   e.preventDefault();
   footer.classList.remove("dragging");
   for (const f of e.dataTransfer.files) addFile(f);
@@ -731,6 +736,7 @@ function showModels(v) {
     return ids;
   }
   vision = Object.fromEntries((v.data || []).map((m) => [m.id, !!m.vision]));
+  thinks = Object.fromEntries((v.data || []).map((m) => [m.id, m.thinking !== false]));
   const select = $("model");
   select.replaceChildren(...ids.map((id) => new Option((titles[id] || id) + (vision[id] ? " · vision" : ""), id)));
   const saved = load("model", "");

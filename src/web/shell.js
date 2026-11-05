@@ -57,7 +57,7 @@ function renameChat(c, title) {
   collapse(load("collapsed", false) === true);
 
   const gib = (bytes) => Math.round(bytes / 2 ** 30);
-  function show(model, state, on) {
+  function showEngine(model, state, on) {
     $("engine-model").textContent = model;
     $("engine-state").textContent = state;
     $("engine-dot").classList.toggle("on", on);
@@ -66,24 +66,50 @@ function renameChat(c, title) {
     clearTimeout(timer);
     try {
       const response = await api("/v1/status", {}, false);
-      if (response.status === 401) show("Ingot", "API key needed", false);
+      if (response.status === 401) showEngine("Ingot", "API key needed", false);
       else if (!response.ok) throw new Error("HTTP " + response.status);
       else {
         const s = await response.json();
         const m = s.memory;
-        if (!s.model) show("No model loaded", "Loads when you chat", false);
+        if (!s.model) showEngine("No model loaded", "Loads when you chat", false);
         else {
           const memory = m.recommended_working_set_bytes
             ? `${gib(m.metal_allocated_bytes)} of ${gib(m.recommended_working_set_bytes)} GiB`
             : `${gib(m.metal_allocated_bytes)} GiB`;
-          show(titles[s.model] || s.model, s.active ? "Generating" : "Loaded, " + memory, true);
+          showEngine(titles[s.model] || s.model, s.active ? "Generating" : "Loaded, " + memory, true);
         }
       }
     } catch (e) {
-      show("Ingot", "Engine not running", false);
+      showEngine("Ingot", "Engine not running", false);
     }
     if (!document.hidden) timer = setTimeout(refresh, REFRESH_MS);
   }
+  // Starred chats stay at the top of the list.
+  $("star").onclick = () => {
+    if (!current) return;
+    current.starred = !current.starred;
+    persist();
+    show();
+  };
+  // One conversation as Markdown: the app opens a save panel, a browser downloads it.
+  $("export").onclick = () => {
+    if (!current) return;
+    const parts = [`# ${current.title}`];
+    if (current.system.trim()) parts.push(`> System: ${current.system.trim()}`);
+    for (const m of current.messages) {
+      if (m.role === "user") parts.push("## You", m.content);
+      else if (m.role === "assistant") parts.push("## Ingot", m.content);
+    }
+    const text = parts.join("\n\n") + "\n";
+    const name = (current.title.replace(/[\\/:*?"<>|]+/g, " ").trim().slice(0, 60) || "conversation") + ".md";
+    if (native({ action: "export", text, name })) return;
+    const link = element("a");
+    link.href = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
+    link.download = name;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
   // Command-N new chat, Command-K search, Escape stops an answer.
   document.addEventListener("keydown", (e) => {
     const command = e.metaKey || e.ctrlKey;

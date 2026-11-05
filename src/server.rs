@@ -421,7 +421,7 @@ fn openai_calls(calls: &[ToolCall], id: &str, index: bool) -> Value {
 }
 fn model_object(id: &str, shared: &Shared) -> Value {
     json!({"id": id, "object": "model", "created": 0, "owned_by": "ingot",
-        "vision": shared.served.vision(id, shared.fixed_vision)})
+        "vision": shared.served.vision(id, shared.fixed_vision), "thinking": shared.served.thinking(id)})
 }
 fn handle(mut stream: TcpStream, shared: Arc<Shared>) {
     if stream.set_read_timeout(Some(IO_TIMEOUT)).is_err()

@@ -297,3 +297,6 @@ h1 { margin: 0; font: 400 32px/1.2 var(--serif); letter-spacing: -.015em; }
   #welcome { font-size: 30px; }
 }
 h2.group { margin: 22px 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.lists li.starred span::before { content: "\2605  "; color: var(--accent); }
+#star[aria-pressed="true"] { color: var(--accent); }
+.chatview header button.plain { min-height: 30px; padding: 0 10px; font-size: 13px; color: var(--muted); }
