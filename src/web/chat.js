@@ -68,7 +68,7 @@ async function api(path, options = {}, ask = true) {
   }
 }
 
-// chats: [{id, title, system, messages: [{role, content, images?, reasoning?, meta?, format?}], updated}]
+// chats: [{id, title, system, starred?, messages: [{role, content, images?, reasoning?, meta?, format?, versions?, at?}], updated}]
 // images are data URLs; when storage is full they are kept for this visit only.
 // Display names of models, filled from the catalog.
 const titles = {};
@@ -81,6 +81,7 @@ let chatsOnDisk = true;
 let saveTimer = null;
 let projectFilter = null;
 let searchText = "";
+let retried = null; // earlier answers carried into the next one by Retry
 let contextSize = 0;
 
 function withoutImages(c) {
@@ -123,75 +124,21 @@ function chat() {
   return current;
 }
 
-// ---------- Markdown (everything is HTML-escaped before tags are added) ----------
-function escapeHtml(text) {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
-// Inline Markdown on already escaped text; only http(s) links are allowed.
-function inline(text) {
-  const codes = [];
-  text = text.replace(/`([^`\n]+)`/g, (_, c) => { codes.push(c); return "\u0000" + (codes.length - 1) + "\u0000"; });
-  text = text
-    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)"]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
-    .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
-    .replace(/(^|[^*\w])\*([^*\n]+)\*/g, "$1<em>$2</em>")
-    .replace(/~~([^~\n]+)~~/g, "<del>$1</del>");
-  return text.replace(/\u0000(\d+)\u0000/g, (_, i) => "<code>" + codes[i] + "</code>");
-}
-const cells = (row) => row.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((c) => c.trim());
-function markdown(source) {
-  const lines = escapeHtml(source).split("\n");
-  const out = [];
-  let paragraph = [], list = null;
-  const flush = () => {
-    if (paragraph.length) { out.push("<p>" + paragraph.map(inline).join("<br>") + "</p>"); paragraph = []; }
-    if (list) { out.push("<" + list.tag + ">" + list.items.map((i) => "<li>" + inline(i) + "</li>").join("") + "</" + list.tag + ">"); list = null; }
-  };
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const fence = line.match(/^\s*```\s*([\w+#.-]*)/);
-    if (fence) {
-      flush();
-      const code = [];
-      while (++i < lines.length && !/^\s*```\s*$/.test(lines[i])) code.push(lines[i]);
-      // The language is a word of [\w+#.-], so it is safe as text.
-      out.push('<div class="codeblock"><div class="codebar"><span>' + (fence[1] || "code") +
-        '</span><button class="icon copy-code">Copy</button></div><pre><code>' + code.join("\n") + "</code></pre></div>");
-      continue;
-    }
-    let m;
-    if (/^\s*\|.*\|\s*$/.test(line) && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|?\s*$/.test(lines[i + 1]) && lines[i + 1].includes("-")) {
-      flush();
-      const head = cells(line), rows = [];
-      i++;
-      while (i + 1 < lines.length && /^\s*\|.*\|\s*$/.test(lines[i + 1])) rows.push(cells(lines[++i]));
-      out.push("<table><tr>" + head.map((c) => "<th>" + inline(c) + "</th>").join("") + "</tr>" +
-        rows.map((r) => "<tr>" + r.map((c) => "<td>" + inline(c) + "</td>").join("") + "</tr>").join("") + "</table>");
-    } else if ((m = line.match(/^(#{1,4})\s+(.*)$/))) {
-      flush();
-      out.push("<h" + m[1].length + ">" + inline(m[2]) + "</h" + m[1].length + ">");
-    } else if ((m = line.match(/^\s*([-*+]|\d+[.)])\s+(.*)$/))) {
-      const tag = /\d/.test(m[1]) ? "ol" : "ul";
-      if (paragraph.length || (list && list.tag !== tag)) flush();
-      if (!list) list = { tag, items: [] };
-      list.items.push(m[2]);
-    } else if ((m = line.match(/^&gt;\s?(.*)$/))) {
-      flush();
-      out.push("<blockquote>" + inline(m[1]) + "</blockquote>");
-    } else if (!line.trim()) {
-      flush();
-    } else {
-      if (list) flush();
-      paragraph.push(line);
-    }
-  }
-  flush();
-  return out.join("");
-}
-
 // ---------- Rendering ----------
-function scrollDown() { const s = $("scroll"); s.scrollTop = s.scrollHeight; }
+// The answer follows new text only while the reader is at the bottom.
+let following = true;
+function scrollDown(force) {
+  const s = $("scroll");
+  if (force) following = true;
+  if (following) s.scrollTop = s.scrollHeight;
+  $("latest").hidden = following;
+}
+$("scroll").addEventListener("scroll", () => {
+  const s = $("scroll");
+  following = s.scrollHeight - s.scrollTop - s.clientHeight < 48;
+  $("latest").hidden = following;
+});
+$("latest").onclick = () => scrollDown(true);
 
 async function copy(text, button) {
   const label = button.textContent;
@@ -286,10 +233,12 @@ function bubble(m, index, last) {
     meta.textContent = m.meta || "";
     actions.append(meta);
     if (index === last.assistant && !controller) actions.append(action("Retry", "Generate this answer again", regenerate));
+    if (m.versions && m.versions.length && !m.streaming && !controller) actions.prepend(versionSwitcher(m));
   }
   if (!m.streaming) {
     const button = action("Copy", "Copy this message", () => copy(m.content, button));
     actions.append(button);
+    if (index >= 0 && !controller) actions.append(action("Branch", "Start a new chat from this message", () => branchFrom(index)));
   }
   div.append(actions);
   return div;
@@ -331,14 +280,16 @@ function renderChats() {
   const ul = $("chats");
   ul.replaceChildren();
   const list = chats.filter((c) => (!projectFilter || c.project === projectFilter) && matchesSearch(c))
-    .sort((a, b) => b.updated - a.updated);
+    .sort((a, b) => !!b.starred - !!a.starred || b.updated - a.updated);
   $("chats-title").textContent = searchText ? "Results" : projectFilter || "Recents";
   for (const c of list) {
     const li = document.createElement("li");
-    li.className = c === current ? "active" : "";
+    li.className = (c === current ? "active " : "") + (c.starred ? "starred" : "");
     const title = document.createElement("span");
     title.textContent = c.title;
     title.title = c.title;
+    const rename = action("Rename", "Rename this conversation", (e) => { e.stopPropagation(); renameChat(c, title); });
+    title.ondblclick = rename.onclick;
     const del = action("✕", "Delete this conversation", (e) => {
       e.stopPropagation();
       if (controller) return;
@@ -347,7 +298,7 @@ function renderChats() {
       persist();
       show();
     });
-    li.append(title, del);
+    li.append(title, rename, del);
     li.onclick = () => {
       if (controller) return;
       current = c;
@@ -355,6 +306,7 @@ function renderChats() {
       document.body.classList.remove("sidebar");
       go("chat");
       show();
+      if (searchText) highlightMatches(searchText);
     };
     ul.append(li);
   }
@@ -372,12 +324,15 @@ function render() {
     if (m.role === "assistant") last.assistant = i;
   });
   messages.forEach((m, i) => log.append(bubble(m, i, last)));
-  scrollDown();
+  scrollDown(true);
 }
 
 function show() {
   $("system").value = current ? current.system : "";
   $("chat-title").textContent = current && current.messages.length ? current.title : "";
+  $("star").hidden = $("export").hidden = !(current && current.messages.length);
+  $("star").setAttribute("aria-pressed", String(!!(current && current.starred)));
+  $("star").textContent = current && current.starred ? "Starred" : "Star";
   renderChats();
   render();
   setBusy(!!controller);
@@ -417,9 +372,10 @@ async function generate() {
   if (maxTokens !== "") body.max_tokens = Number(maxTokens);
   const format = $("format").value;
   if (format === "json") body.response_format = { type: "json_object" };
-  if ($("thinking").value) body.reasoning_effort = $("thinking").value;
+  if ($("thinking").value && !$("thinking").hidden) body.reasoning_effort = $("thinking").value;
 
   const reply = { role: "assistant", content: "", reasoning: "", meta: "", streaming: true, format };
+  if (retried) { reply.versions = retried; reply.at = retried.length; retried = null; }
   c.messages.push(reply);
   c.updated = Date.now();
   controller = new AbortController();
@@ -516,6 +472,7 @@ async function generate() {
 function send() {
   const text = $("input").value;
   if ((!text.trim() && !attachments.length && !documents.length) || controller) return;
+  if (!$("model").value) return go("models");
   $("input").value = "";
   fitInput();
   const c = chat();
@@ -535,10 +492,11 @@ function send() {
 // which models can read images.
 let attachments = [];
 let documents = [];
-let vision = {};
+let vision = {}, thinks = {};
 const MAX_TEXT = 4 * 1024 * 1024;
 function canSee() { return !!vision[$("model").value]; }
-function updateAttach() { $("attach").disabled = !!controller; }
+// The thinking picker shows only for models whose template can think.
+function updateAttach() { $("attach").disabled = !!controller; $("thinking").hidden = !thinks[$("model").value]; }
 function fileChip(f) {
   const chip = document.createElement("span");
   chip.className = "chip";
@@ -623,10 +581,11 @@ $("input").addEventListener("paste", (e) => {
   e.preventDefault();
   files.forEach(addFile);
 });
-const footer = document.querySelector("footer");
-footer.addEventListener("dragover", (e) => { e.preventDefault(); footer.classList.add("dragging"); });
-footer.addEventListener("dragleave", () => footer.classList.remove("dragging"));
-footer.addEventListener("drop", (e) => {
+// Files dropped anywhere on the conversation attach; the composer shows it.
+const footer = document.querySelector("footer"), zone = document.querySelector(".chatview");
+zone.addEventListener("dragover", (e) => { e.preventDefault(); footer.classList.add("dragging"); });
+zone.addEventListener("dragleave", (e) => { if (!zone.contains(e.relatedTarget)) footer.classList.remove("dragging"); });
+zone.addEventListener("drop", (e) => {
   e.preventDefault();
   footer.classList.remove("dragging");
   for (const f of e.dataTransfer.files) addFile(f);
@@ -661,6 +620,8 @@ $("new").onclick = () => {
 function regenerate() {
   if (controller || !current) return;
   const m = current.messages;
+  const old = m[m.length - 1];
+  retried = old && old.role === "assistant" ? allVersions(old) : null;
   while (m.length && m[m.length - 1].role !== "user") m.pop();
   if (m.length) generate();
 }
@@ -710,12 +671,14 @@ function loadModels() {
 }
 function showModels(v) {
   const ids = (v.data || []).map((m) => m.id).filter(Boolean);
+  document.body.classList.toggle("nomodel", !ids.length);
   if (!ids.length) {
     $("model").replaceChildren(new Option("No model yet", ""));
     updateAttach();
     return ids;
   }
   vision = Object.fromEntries((v.data || []).map((m) => [m.id, !!m.vision]));
+  thinks = Object.fromEntries((v.data || []).map((m) => [m.id, m.thinking !== false]));
   const select = $("model");
   select.replaceChildren(...ids.map((id) => new Option((titles[id] || id) + (vision[id] ? " · vision" : ""), id)));
   const saved = load("model", "");
@@ -754,15 +717,3 @@ function native(message) {
 }
 if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.ingot) document.body.classList.add("native");
 
-const modelsReady = readChats().then(() => {
-  show();
-  return catalogReady();
-}).then(() => loadModels()).catch((e) => {
-  $("model").replaceChildren(new Option("No model", ""));
-  $("status").textContent = "Cannot list models (" + e.message + "); is the server running?";
-  return null;
-});
-// The app restarts the engine when server settings change: return to the page.
-const lastView = load("view", "chat");
-go(["model", "custom"].includes(lastView) ? "models" : lastView);
-$("input").focus();

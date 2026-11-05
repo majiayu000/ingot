@@ -118,9 +118,9 @@ final class Engine: ObservableObject {
         }
     }
 
-    func exportChats(_ text: String) {
+    func exportChats(_ text: String, name: String = "ingot-chats.json") {
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = "ingot-chats.json"
+        panel.nameFieldStringValue = name
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             do {

@@ -58,6 +58,7 @@ async function refreshLibrary() {
 async function pull(name, total) {
   const controller = new AbortController();
   const state = { controller, files: {}, started: Date.now(), done: 0, resumed: null, total };
+  askToNotify();
   running.set(name, state);
   libraryError = "";
   renderLibrary();
@@ -84,8 +85,12 @@ async function pull(name, total) {
       }
       showProgress(name);
     }
+    notify(`${titles[name] || name} is ready`, "The download finished. You can chat with it now.");
   } catch (e) {
-    if (e.name !== "AbortError") libraryError = `${titles[name] || name}: ${e.message}`;
+    if (e.name !== "AbortError") {
+      libraryError = `${titles[name] || name}: ${e.message}`;
+      notify(`${titles[name] || name} did not download`, e.message);
+    }
   }
   running.delete(name);
   await refreshLibrary();
@@ -122,6 +127,14 @@ async function removeModel(name) {
   await refreshLibrary();
   await loadModels().catch(() => null);
 }
+// An empty Ollama generate request with keep_alive 0 unloads the model.
+async function unload(name, target) {
+  target.disabled = true;
+  const response = await api("/api/generate", { method: "POST", body: JSON.stringify({ model: name, keep_alive: 0 }) });
+  if (!response.ok) libraryError = `${titles[name] || name}: ${await failureOf(response)}`;
+  await refreshLibrary();
+  openModel(name);
+}
 function chatWith(name) {
   $("model").value = name;
   $("model").dispatchEvent(new Event("change"));
@@ -152,14 +165,15 @@ function card(model, tile, badge) {
   if (model.summary) body.append(element("div", "about", model.summary));
   const [note, tone] = NOTES[model.fit](model);
   if (note) body.append(element("div", "note " + (blocked ? "warn" : tone), note));
-  if (model.loaded) body.append(element("div", "note good", "Loaded"));
+  // A custom model runs on its base model's weights, so it is ready when they are loaded.
+  if (model.loaded) body.append(element("div", "note good", model.custom ? `Ready, shares ${titles[model.base] || model.base}'s memory` : "Loaded"));
   node.append(body, actions(model));
   if (running.has(model.name)) node.append(progressLine(model.name));
   return node;
 }
 function segmented() {
   const box = element("div", "segmented");
-  for (const [id, label] of [["installed", "On this Mac"], ["discover", "Discover"]]) {
+  for (const [id, label] of [["installed", "Library"], ["discover", "Discover"]]) {
     const b = button(label, () => { tab = id; renderLibrary(); });
     b.setAttribute("aria-pressed", String(tab === id));
     box.append(b);
@@ -186,9 +200,13 @@ function installedPage(nodes) {
     nodes.push(hero);
     rest = rest.filter((m) => m !== best && m !== small);
   }
-  const list = element("div", "list");
-  list.append(...[...rest].sort((a, b) => b.present - a.present).map((m) => card(m, false, m.recommended ? "Best for this Mac" : "")));
-  nodes.push(list);
+  const badge = (m) => card(m, false, m.recommended ? "Best for this Mac" : "");
+  for (const [label, models] of [["On this Mac", rest.filter((m) => m.present)], ["Available to download", rest.filter((m) => !m.present)]]) {
+    if (!models.length) continue;
+    const list = element("div", "list");
+    list.append(...models.map(badge));
+    nodes.push(element("h2", "group", label), list);
+  }
 }
 
 async function search(text) {
@@ -335,8 +353,26 @@ async function openModel(name) {
   const list = [["Tool calling", m.tools ? "Supported" : "Not supported"], ["Image input", m.vision ? "Ready" : "Not available"]];
   if (m.draft) list.push(["Faster decoding", "MTP draft"]);
   here.append(element("h2", "", "Capabilities"), facts(list));
-  if (m.present && !m.loaded) {
-    here.append(button(m.custom ? "Delete custom model" : "Delete from disk", async () => { await removeModel(name); go("models"); }, "danger"));
+  if (m.loaded) {
+    const line = element("div", "buttons");
+    line.append(button("Unload", (e) => unload(name, e.target)), element("span", "note", "Frees its memory now. Unload it to delete it."));
+    here.append(line);
+  } else if (m.present) {
+    // Deleting needs a second click that names what goes.
+    const label = m.custom ? "Delete custom model" : "Delete from disk";
+    const del = button(label, async () => {
+      if (confirming !== name) {
+        confirming = name;
+        del.textContent = m.custom ? "Click again to delete" : `Click again to delete ${size(total)}`;
+        return;
+      }
+      await removeModel(name);
+      go("models");
+    }, "danger");
+    confirming = "";
+    const line = element("div", "buttons");
+    line.append(del);
+    here.append(line);
   }
   const panel = element("div", "panel");
   panel.append(element("h2", "", "Files"), facts(files.map((f) => [f.name, size(f.bytes)])));
@@ -349,7 +385,8 @@ async function openModel(name) {
   }
   const split = element("div", "split");
   split.append(here, panel);
-  page.append(head, stats, split);
+  // Replace rather than append: a second open may have finished first.
+  page.replaceChildren(backButton(), head, stats, split);
   if (m.custom) {
     const box = element("div", "panel");
     box.append(element("h2", "", "System prompt"), element("div", "note", m.custom.system || "None"));
@@ -440,5 +477,3 @@ function openCustom(existing) {
 }
 
 window.addEventListener("ingot-view", (e) => { if (e.detail === "models") refreshLibrary(); });
-// A new Mac starts here: there is nothing to chat with yet.
-modelsReady.then((ids) => { if (ids && !ids.length) go("models"); });

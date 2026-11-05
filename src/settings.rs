@@ -48,6 +48,7 @@ fn defaults() -> Value {
         "api_key": "",
         "check_updates": true,
         "menu_bar": true,
+        "prompts": [],
     })
 }
 
@@ -57,6 +58,13 @@ fn check(key: &str, value: &Value) -> Result<()> {
         "context" => value.as_u64().is_some_and(|n| n <= 1 << 20),
         "port" => value.as_u64().is_some_and(|n| (1024..=65535).contains(&n)),
         "allow_network" | "check_updates" | "menu_bar" => value.is_boolean(),
+        // Saved prompts the composer offers: at most 100 texts of 20,000 characters.
+        "prompts" => value.as_array().is_some_and(|list| {
+            list.len() <= 100
+                && list
+                    .iter()
+                    .all(|p| p.as_str().is_some_and(|t| t.chars().count() <= 20_000))
+        }),
         "keep_alive" => value
             .as_str()
             .is_some_and(|text| text == "-1" || crate::server::worker::duration(text).is_ok()),
@@ -142,5 +150,8 @@ mod tests {
         assert!(check("keep_alive", &json!("soon")).is_err());
         assert!(check("context", &json!(8192)).is_ok());
         assert!(check("unknown", &json!(1)).is_err());
+        assert!(check("prompts", &json!(["Summarize this:"])).is_ok());
+        assert!(check("prompts", &json!([1])).is_err());
+        assert!(check("prompts", &json!(vec!["x"; 101])).is_err());
     }
 }

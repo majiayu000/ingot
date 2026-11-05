@@ -173,6 +173,25 @@ impl Served {
                 .is_some(),
         }
     }
+    /// The chat template has a thinking switch (Qwen3, Qwen3.8, GLM, Gemma 4
+    /// use `enable_thinking`, `reasoning_effort` or a think block). A fixed
+    /// model is assumed to have one, so its picker stays available.
+    pub(crate) fn thinking(&self, id: &str) -> bool {
+        match self {
+            Self::Fixed(_) => true,
+            Self::Local(local) => models::resolve(&local.manifest, &local.base(id), &local.root)
+                .ok()
+                .and_then(|r| crate::gguf::Gguf::open(&r.model).ok())
+                .and_then(|g| {
+                    g.optional_string("tokenizer.chat_template").map(|t| {
+                        ["enable_thinking", "reasoning_effort", "<think>"]
+                            .iter()
+                            .any(|k| t.contains(k))
+                    })
+                })
+                .unwrap_or(false),
+        }
+    }
     pub(crate) fn list(&self) -> std::result::Result<Vec<String>, ApiError> {
         match self {
             Self::Fixed(id) => Ok(vec![id.clone()]),

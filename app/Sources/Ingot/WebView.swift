@@ -1,6 +1,7 @@
 import AppKit
 import ServiceManagement
 import SwiftUI
+import UserNotifications
 import WebKit
 
 /// The interface is the page the engine serves, so the app and a browser
@@ -65,19 +66,35 @@ struct WebView: NSViewRepresentable {
             case "restart":
                 engine.restart()
             case "export":
-                if let text = body["text"] as? String { engine.exportChats(text) }
+                if let text = body["text"] as? String {
+                    engine.exportChats(text, name: body["name"] as? String ?? "ingot-chats.json")
+                }
             case "terminal":
                 if let tool = body["tool"] as? String, let model = body["model"] as? String {
                     engine.launchInTerminal(tool: tool, model: model)
                 }
             case "chooseFolder":
                 chooseFolder()
+            case "notify":
+                if let title = body["title"] as? String { notify(title, body["body"] as? String ?? "") }
             case "checkUpdates":
                 Updates.check()
             case "login":
                 if let on = body["on"] as? Bool { openAtLogin(on) }
             default:
                 break
+            }
+        }
+
+        /// A system notification; macOS asks for permission the first time.
+        private func notify(_ title: String, _ text: String) {
+            let center = UNUserNotificationCenter.current()
+            center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+                guard granted else { return }
+                let content = UNMutableNotificationContent()
+                content.title = title
+                content.body = text
+                center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
             }
         }
 

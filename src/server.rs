@@ -56,7 +56,7 @@ const MAX_PENDING: usize = 8;
 const MAX_EVENTS: usize = 8;
 const IO_TIMEOUT: Duration = Duration::from_secs(30);
 /// The app's page and its parts, served as they are.
-const WEB: [(&str, &str, &str); 8] = [
+const WEB: [(&str, &str, &str); 9] = [
     (
         "/",
         "text/html; charset=utf-8",
@@ -66,6 +66,11 @@ const WEB: [(&str, &str, &str); 8] = [
         "/style.css",
         "text/css; charset=utf-8",
         include_str!("web/style.css"),
+    ),
+    (
+        "/markdown.js",
+        "text/javascript; charset=utf-8",
+        include_str!("web/markdown.js"),
     ),
     (
         "/chat.js",
@@ -421,7 +426,7 @@ fn openai_calls(calls: &[ToolCall], id: &str, index: bool) -> Value {
 }
 fn model_object(id: &str, shared: &Shared) -> Value {
     json!({"id": id, "object": "model", "created": 0, "owned_by": "ingot",
-        "vision": shared.served.vision(id, shared.fixed_vision)})
+        "vision": shared.served.vision(id, shared.fixed_vision), "thinking": shared.served.thinking(id)})
 }
 fn handle(mut stream: TcpStream, shared: Arc<Shared>) {
     if stream.set_read_timeout(Some(IO_TIMEOUT)).is_err()

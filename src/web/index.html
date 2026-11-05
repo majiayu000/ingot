@@ -39,16 +39,22 @@
     <header>
       <button id="menu" class="plain square" title="Conversations" aria-label="Conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <span id="chat-title"></span>
+      <span class="spacer"></span>
+      <button id="star" class="plain" hidden aria-pressed="false">Star</button>
+      <button id="export" class="plain" hidden title="Save this conversation as Markdown">Export</button>
     </header>
     <main id="scroll"><div class="log" id="log"></div></main>
     <footer>
+      <button id="latest" class="latest" hidden aria-label="Jump to the latest message"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
       <h1 id="welcome"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="mark" d="M6 8h12l3 10H3L6 8Z"/><path class="mark-top" d="M6 8h12l1 3H5l1-3Z"/></svg><span id="greeting">Hello</span></h1>
       <div class="composer">
         <div id="attachments" class="chips"></div>
+        <div id="prompts" class="popover" hidden></div>
         <textarea id="input" rows="1" placeholder="How can I help you today?" aria-label="Message"></textarea>
         <div class="line">
           <button id="attach" class="square" title="Attach images, PDFs or text files" aria-label="Attach a file"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
           <button id="options-toggle" class="square" title="Chat options" aria-label="Chat options" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4"/></svg></button>
+          <button id="prompts-toggle" class="square" title="Saved prompts" aria-label="Saved prompts" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v16l-5-4-5 4V4Z"/></svg></button>
           <select id="thinking" class="pick" title="Thinking" aria-label="Thinking">
             <option value="">Think: default</option><option value="none">Think: off</option><option value="low">Think: low</option><option value="medium">Think: medium</option><option value="high">Think: high</option>
           </select>
@@ -73,6 +79,8 @@
         <button data-start="Translate into English: "><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>Translate</button>
         <button data-start="models"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3ZM4 7.5l8 4.5 8-4.5M12 12v9"/></svg>Pick a model</button>
       </div>
+      <div id="first" class="notice"><span>Download a model to start chatting. Ingot suggests one that fits this Mac.</span><button id="first-pick" class="gold">Choose a model</button></div>
+      <div id="offline" class="notice" hidden role="alert"><span>The Ingot engine is not responding.</span><button id="offline-retry">Try again</button></div>
       <div id="status" role="status"></div>
     </footer>
   </section>
@@ -88,6 +96,7 @@
   <form id="keyform"><label for="keyinput" id="keylabel"></label><input id="keyinput" type="password" autocomplete="off">
     <div><button type="button" id="keycancel">Cancel</button><button class="gold">OK</button></div></form>
 </div>
+<script src="markdown.js"></script>
 <script src="chat.js"></script>
 <script src="monitor.js"></script>
 <script src="models.js"></script>
