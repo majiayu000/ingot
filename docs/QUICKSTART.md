@@ -13,16 +13,17 @@ If you want an AI coding agent to do the setup for you, point it at
 - A Mac with Apple Silicon (M1 or later) and macOS 15 or later.
 - Free disk space for a model: from about 5 GiB for a small model to over
   100 GiB for the largest one (see [Which model?](#which-model-should-i-pick)).
-- Xcode Command Line Tools and Rust 1.88 or later (the installer checks both
-  and tells you how to get them).
+- Xcode Command Line Tools and Rust 1.88 or later only when building from source.
+  The published Mac app and CLI archive do not require Rust.
 
 Ingot is an early project. It has been tested on one machine (M2 Max,
 96 GiB). Other Macs should work but are untested.
 
 ## The Mac app
 
-Run `scripts/package-app.sh`, open `dist/Ingot-0.1.0.dmg` and drag Ingot to
-Applications. The app has the same chat and model list as the steps below, and
+Download `Ingot-0.1.0.dmg` from the [0.1.0 release](https://github.com/majiayu000/ingot/releases/tag/v0.1.0),
+open it and drag Ingot to Applications. To build the app yourself, run
+`scripts/package-app.sh` and use the disk image in `dist/`. The app has the same chat and model list as the steps below, and
 its menu bar icon can start Ingot at login, copy the API address and install the
 `ingot` command. Models are shared with the command line. Apps connect to
 `http://127.0.0.1:11435`, or the next free port if that one is taken.
@@ -40,7 +41,9 @@ The rest of this guide covers the command line.
 
 ## Install
 
-Open the **Terminal** app and run:
+For the prebuilt CLI archive and checksum commands, see the
+[README installation section](../README.md#get-started). To build from source,
+open the **Terminal** app and run:
 
 ```sh
 git clone https://github.com/majiayu000/ingot.git

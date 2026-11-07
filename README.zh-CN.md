@@ -13,8 +13,22 @@ Ingot 是一个 Rust 程序，使用自己的 Metal kernel，运行时不依赖 
 
 ## 开始使用
 
-需要 Apple Silicon Mac 和 macOS 15 及以上。目前还没有预编译版本，需要先用 Rust 1.88 及以上和
-Xcode 命令行工具构建：
+需要 Apple Silicon Mac 和 macOS 15 及以上。
+
+**下载 Mac 应用：** [Ingot 0.1.0 正式版](https://github.com/majiayu000/ingot/releases/tag/v0.1.0)
+提供 `Ingot-0.1.0.dmg`，已通过 Developer ID 签名和 Apple 公证。打开磁盘映像，把 Ingot
+拖到“应用程序”即可，不需要安装 Rust。
+
+**命令行：** 从同一发布页下载 `ingot-0.1.0-aarch64-apple-darwin.tar.gz` 和对应的
+`.sha256` 文件，然后运行：
+
+```sh
+shasum -a 256 -c ingot-0.1.0-aarch64-apple-darwin.tar.gz.sha256
+tar -xzf ingot-0.1.0-aarch64-apple-darwin.tar.gz
+./ingot-0.1.0-aarch64-apple-darwin/ingot --version
+```
+
+如果要从当前源码构建，需要 Rust 1.88 及以上和 Xcode 命令行工具：
 
 ```sh
 git clone https://github.com/majiayu000/ingot.git
