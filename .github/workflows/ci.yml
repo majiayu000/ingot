@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   msrv:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - name: Minimum supported Rust toolchain
@@ -19,7 +19,7 @@ jobs:
         run: cargo +1.88.0 check --release --locked --all-targets
 
   check:
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       CARGO_TERM_COLOR: always
     steps:
