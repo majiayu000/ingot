@@ -14,9 +14,23 @@ It does not use llama.cpp or MLX at run time.
 
 ## Get started
 
-You need an Apple Silicon Mac and macOS 15 or later. There is no prebuilt
-download yet, so build it first with Rust 1.88+ and the Xcode Command Line
-Tools:
+You need an Apple Silicon Mac and macOS 15 or later.
+
+**Download the Mac app:** [Ingot 0.1.0](https://github.com/majiayu000/ingot/releases/tag/v0.1.0)
+includes `Ingot-0.1.0.dmg`, signed with Developer ID and notarized by Apple.
+Open the disk image and drag Ingot to Applications. No Rust toolchain is needed.
+
+**Command line:** download `ingot-0.1.0-aarch64-apple-darwin.tar.gz` and its
+`.sha256` file from the same release, then run:
+
+```sh
+shasum -a 256 -c ingot-0.1.0-aarch64-apple-darwin.tar.gz.sha256
+tar -xzf ingot-0.1.0-aarch64-apple-darwin.tar.gz
+./ingot-0.1.0-aarch64-apple-darwin/ingot --version
+```
+
+To build the current source instead, install Rust 1.88+ and the Xcode Command
+Line Tools:
 
 ```sh
 git clone https://github.com/majiayu000/ingot.git
@@ -25,8 +39,7 @@ scripts/package-app.sh       # the Mac app and disk image, in dist/
 scripts/install.sh           # or only the command line tool
 ```
 
-**Mac app:** open `dist/Ingot-0.1.0.dmg` and drag Ingot to Applications. It
-opens on a list of models rated for your Mac. Pick one, wait for the download,
+**Mac app:** the source build writes `dist/Ingot-0.1.0.dmg`. The app opens on a list of models rated for your Mac. Pick one, wait for the download,
 and start typing. Chats, projects, PDF and text attachments, custom models and
 settings are all in the app. Ingot stays in the menu bar so your other apps can
 reach it.
